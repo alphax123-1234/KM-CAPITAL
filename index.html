@@ -138,6 +138,12 @@
         <div id="rangeButtons" class="flex items-center gap-1 bg-[var(--bg-panel)] rounded-md p-1 border border-[var(--line)]">
           <!-- populated by JS -->
         </div>
+        <div id="macroHistoryToggle" class="hidden items-center gap-1 bg-[var(--bg-panel)] rounded-md p-1 border border-[var(--line)] ml-2">
+          <button data-view="usdugx" class="macro-view-btn active px-2.5 py-1 rounded text-[11.5px] font-medium text-[var(--text-mid)]">USD/UGX</button>
+          <button data-view="history" class="macro-view-btn px-2.5 py-1 rounded text-[11.5px] font-medium text-[var(--text-mid)]">CPI &amp; GDP History</button>
+        </div>
+          <!-- populated by JS -->
+        </div>
       </div>
 
       <div id="chartContainer" class="flex-1 min-h-[340px] px-2 pb-3"></div>
@@ -271,13 +277,16 @@ let STATE = {
 };
 
 async function loadAllData(){
-  const [macroLocal, stocksLocal, bondsLocal, agriLocal, liveRate] = await Promise.all([
+  const [macroLocal, stocksLocal, bondsLocal, agriLocal, macroHistoryLocal, liveRate] = await Promise.all([
     loadJSON("./data/macro_indicators.json"),
     loadJSON("./data/stocks_daily.json"),
     loadJSON("./data/fixed_income_yields.json"),
     loadJSON("./data/agriculture_spot.json"),
+    loadJSON("./data/macro_timeseries.json"),
     fetchLiveUsdUgx()
   ]);
+  STATE.macroHistory = macroHistoryLocal; // may be null if the Action hasn't run yet
+
 
   STATE.macro = macroLocal || MOCK.macro;
   STATE.categories.equities = stocksLocal || MOCK.stocks;
