@@ -49,6 +49,8 @@
   .nav-link:not(.active):hover{ background: rgba(255,255,255,0.03); }
 
   .range-btn.active{ background:var(--accent); color:#fff; }
+  .macro-view-btn.active{ background:var(--accent); color:#fff; }
+  
   .watch-row{ transition: background-color .12s ease; cursor:pointer; }
   .watch-row:hover{ background: rgba(255,255,255,0.035); }
   .watch-row.selected{ background: rgba(76,141,255,0.10); }
@@ -407,13 +409,8 @@ function setActiveCategory(cat){
 
   if(cat === "macro"){
     // Macro has no ticker list; show macro indicators as the "watchlist" instead
-    renderMacroAsWatchlist();
-  } else {
-    renderWatchlist();
-    updateChartHeader();
-    loadChartData(STATE.activeRange);
-  }
-}
+   let currentMacroView = "usdugx";
+let historySeries = { cpi: null, gdp: null };
 
 function renderMacroAsWatchlist(){
   document.getElementById("watchlistTitle").textContent = "Macro Economics";
@@ -435,17 +432,76 @@ function renderMacroAsWatchlist(){
   document.getElementById("watchlistBody").innerHTML = rowsHtml;
   document.getElementById("watchlistBodyM").innerHTML = rowsHtml;
 
-  document.getElementById("chartTitle").textContent = "USD/UGX";
-  document.getElementById("chartTicker").textContent = "MACRO";
-  document.getElementById("chartPrice").textContent = STATE.usdUgx.value.toLocaleString(undefined,{maximumFractionDigits:1});
-  const t = trendGlyph(STATE.usdUgx.change);
-  const el = document.getElementById("chartChange");
-  el.textContent = `${t.glyph} ${STATE.usdUgx.change.toFixed(2)}%`;
-  el.className = "text-[13px] font-mono-data font-medium " + t.cls;
-
-  loadChartData(STATE.activeRange, { synthetic: true, basePrice: STATE.usdUgx.value, vol: 8, ticker: "USDUGX" });
+  document.getElementById("macroHistoryToggle").classList.remove("hidden");
+  document.getElementById("macroHistoryToggle").classList.add("flex");
+  wireMacroToggle();
+  showMacroView(currentMacroView);
 }
 
+function wireMacroToggle(){
+  document.querySelectorAll(".macro-view-btn").forEach(btn => {
+    btn.onclick = () => showMacroView(btn.dataset.view);
+  });
+}
+
+function clearHistorySeries(){
+  if(historySeries.cpi){ chart.removeSeries(historySeries.cpi); historySeries.cpi = null; }
+  if(historySeries.gdp){ chart.removeSeries(historySeries.gdp); historySeries.gdp = null; }
+  series.applyOptions({ visible: true });
+}
+
+function showMacroView(view){
+  currentMacroView = view;
+  document.querySelectorAll(".macro-view-btn").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+
+  if(view === "usdugx"){
+    clearHistorySeries();
+    document.getElementById("chartTitle").textContent = "USD/UGX";
+    document.getElementById("chartTicker").textContent = "MACRO";
+    document.getElementById("chartPrice").textContent = STATE.usdUgx.value.toLocaleString(undefined,{maximumFractionDigits:1});
+    const t = trendGlyph(STATE.usdUgx.change);
+    const el = document.getElementById("chartChange");
+    el.textContent = `${t.glyph} ${STATE.usdUgx.change.toFixed(2)}%`;
+    el.className = "text-[13px] font-mono-data font-medium " + t.cls;
+    loadChartData(STATE.activeRange, { synthetic: true, basePrice: STATE.usdUgx.value, vol: 8, ticker: "USDUGX" });
+    return;
+  }
+
+  // "history" view — CPI & GDP growth from ugatsdb, via macro_timeseries.json
+  series.applyOptions({ visible: false }); // hide the candlestick series
+  clearHistorySeries();
+
+  if(!STATE.macroHistory || (!STATE.macroHistory.series?.cpi?.points?.length && !STATE.macroHistory.series?.gdp?.points?.length)){
+    document.getElementById("chartTitle").textContent = "CPI & GDP History";
+    document.getElementById("chartTicker").textContent = "NO DATA YET";
+    document.getElementById("chartPrice").textContent = "—";
+    document.getElementById("chartChange").textContent = "Run the ugatsdb GitHub Action to populate this";
+    document.getElementById("chartChange").className = "text-[13px] font-mono-data font-medium text-[var(--text-dim)]";
+    return;
+  }
+
+  const cpiPts = (STATE.macroHistory.series.cpi?.points || []).map(p => ({ time: p.date, value: p.value }));
+  const gdpPts = (STATE.macroHistory.series.gdp?.points || []).map(p => ({ time: p.date, value: p.value }));
+
+  if(cpiPts.length){
+    historySeries.cpi = chart.addLineSeries({ color: "#4c8dff", lineWidth: 2, priceScaleId: "right", title: "CPI Index" });
+    historySeries.cpi.setData(cpiPts);
+  }
+  if(gdpPts.length){
+    historySeries.gdp = chart.addLineSeries({ color: "#26a69a", lineWidth: 2, priceScaleId: "left", title: "GDP Growth %" });
+    chart.applyOptions({ leftPriceScale: { visible: true, borderColor: "#232b36" } });
+    historySeries.gdp.setData(gdpPts);
+  }
+  chart.timeScale().fitContent();
+
+  document.getElementById("chartTitle").textContent = "CPI & GDP Growth History";
+  document.getElementById("chartTicker").textContent = "UGATSDB";
+  const latestCpi = cpiPts[cpiPts.length - 1];
+  const latestGdp = gdpPts[gdpPts.length - 1];
+  document.getElementById("chartPrice").textContent = latestCpi ? latestCpi.value.toFixed(2) : "—";
+  document.getElementById("chartChange").textContent = latestGdp ? `GDP growth: ${latestGdp.value.toFixed(2)}%` : "";
+  document.getElementById("chartChange").className = "text-[13px] font-mono-data font-medium text-[var(--text-mid)]";
+}
 /* ==========================================================================
    CHART
    ========================================================================== */
@@ -599,9 +655,14 @@ document.querySelectorAll(".nav-link, .nav-link-m").forEach(btn => {
   renderTicker();
   renderRangeButtons();
   initChart();
-  renderWatchlist();
-  updateChartHeader();
-  loadChartData(STATE.activeRange);
+   
+    document.getElementById("macroHistoryToggle").classList.add("hidden");
+    document.getElementById("macroHistoryToggle").classList.remove("flex");
+    series.applyOptions({ visible: true });
+    renderWatchlist();
+    updateChartHeader();
+    loadChartData(STATE.activeRange);
+  }
   tickClock();
   setInterval(tickClock, 1000);
 })();
