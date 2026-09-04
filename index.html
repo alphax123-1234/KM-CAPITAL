@@ -9,7 +9,8 @@
 <!-- Tailwind (CDN, JIT) -->
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Lightweight Charts by TradingView -->
-<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightweight-charts/4.1.3/lightweight-charts.standalone.production.js"></script>
+
 <style>
   :root{
     --bg-canvas: #0b0f14;
@@ -50,7 +51,6 @@
 
   .range-btn.active{ background:var(--accent); color:#fff; }
   .macro-view-btn.active{ background:var(--accent); color:#fff; }
-  
   .watch-row{ transition: background-color .12s ease; cursor:pointer; }
   .watch-row:hover{ background: rgba(255,255,255,0.035); }
   .watch-row.selected{ background: rgba(76,141,255,0.10); }
@@ -143,8 +143,6 @@
         <div id="macroHistoryToggle" class="hidden items-center gap-1 bg-[var(--bg-panel)] rounded-md p-1 border border-[var(--line)] ml-2">
           <button data-view="usdugx" class="macro-view-btn active px-2.5 py-1 rounded text-[11.5px] font-medium text-[var(--text-mid)]">USD/UGX</button>
           <button data-view="history" class="macro-view-btn px-2.5 py-1 rounded text-[11.5px] font-medium text-[var(--text-mid)]">CPI &amp; GDP History</button>
-        </div>
-          <!-- populated by JS -->
         </div>
       </div>
 
@@ -287,13 +285,12 @@ async function loadAllData(){
     loadJSON("./data/macro_timeseries.json"),
     fetchLiveUsdUgx()
   ]);
-  STATE.macroHistory = macroHistoryLocal; // may be null if the Action hasn't run yet
-
 
   STATE.macro = macroLocal || MOCK.macro;
   STATE.categories.equities = stocksLocal || MOCK.stocks;
   STATE.categories.bonds = bondsLocal || MOCK.bonds;
   STATE.categories.agri = agriLocal || MOCK.agri;
+  STATE.macroHistory = macroHistoryLocal; // may be null until the ugatsdb Action has run
 
   if(liveRate){
     STATE.usdUgx = { value: liveRate, change: 0.0, live: true };
@@ -409,7 +406,18 @@ function setActiveCategory(cat){
 
   if(cat === "macro"){
     // Macro has no ticker list; show macro indicators as the "watchlist" instead
-   let currentMacroView = "usdugx";
+    renderMacroAsWatchlist();
+  } else {
+    document.getElementById("macroHistoryToggle").classList.add("hidden");
+    document.getElementById("macroHistoryToggle").classList.remove("flex");
+    series.applyOptions({ visible: true });
+    renderWatchlist();
+    updateChartHeader();
+    loadChartData(STATE.activeRange);
+  }
+}
+
+let currentMacroView = "usdugx";
 let historySeries = { cpi: null, gdp: null };
 
 function renderMacroAsWatchlist(){
@@ -432,22 +440,19 @@ function renderMacroAsWatchlist(){
   document.getElementById("watchlistBody").innerHTML = rowsHtml;
   document.getElementById("watchlistBodyM").innerHTML = rowsHtml;
 
-  document.getElementById("macroHistoryToggle").classList.remove("hidden");
-  document.getElementById("macroHistoryToggle").classList.add("flex");
-  wireMacroToggle();
-  showMacroView(currentMacroView);
-}
-
-function wireMacroToggle(){
+  const toggle = document.getElementById("macroHistoryToggle");
+  toggle.classList.remove("hidden");
+  toggle.classList.add("flex");
   document.querySelectorAll(".macro-view-btn").forEach(btn => {
     btn.onclick = () => showMacroView(btn.dataset.view);
   });
+  showMacroView(currentMacroView);
 }
 
 function clearHistorySeries(){
   if(historySeries.cpi){ chart.removeSeries(historySeries.cpi); historySeries.cpi = null; }
   if(historySeries.gdp){ chart.removeSeries(historySeries.gdp); historySeries.gdp = null; }
-  series.applyOptions({ visible: true });
+  if(series) series.applyOptions({ visible: true });
 }
 
 function showMacroView(view){
@@ -467,16 +472,20 @@ function showMacroView(view){
     return;
   }
 
-  // "history" view — CPI & GDP growth from ugatsdb, via macro_timeseries.json
-  series.applyOptions({ visible: false }); // hide the candlestick series
+  // "history" view — CPI & GDP growth pulled from data/macro_timeseries.json (via ugatsdb)
+  series.applyOptions({ visible: false });
   clearHistorySeries();
 
-  if(!STATE.macroHistory || (!STATE.macroHistory.series?.cpi?.points?.length && !STATE.macroHistory.series?.gdp?.points?.length)){
+  const hasCpi = STATE.macroHistory?.series?.cpi?.points?.length > 0;
+  const hasGdp = STATE.macroHistory?.series?.gdp?.points?.length > 0;
+
+  if(!STATE.macroHistory || (!hasCpi && !hasGdp)){
     document.getElementById("chartTitle").textContent = "CPI & GDP History";
     document.getElementById("chartTicker").textContent = "NO DATA YET";
     document.getElementById("chartPrice").textContent = "—";
-    document.getElementById("chartChange").textContent = "Run the ugatsdb GitHub Action to populate this";
-    document.getElementById("chartChange").className = "text-[13px] font-mono-data font-medium text-[var(--text-dim)]";
+    const el = document.getElementById("chartChange");
+    el.textContent = "Run the ugatsdb GitHub Action to populate this";
+    el.className = "text-[13px] font-mono-data font-medium text-[var(--text-dim)]";
     return;
   }
 
@@ -488,8 +497,8 @@ function showMacroView(view){
     historySeries.cpi.setData(cpiPts);
   }
   if(gdpPts.length){
-    historySeries.gdp = chart.addLineSeries({ color: "#26a69a", lineWidth: 2, priceScaleId: "left", title: "GDP Growth %" });
     chart.applyOptions({ leftPriceScale: { visible: true, borderColor: "#232b36" } });
+    historySeries.gdp = chart.addLineSeries({ color: "#26a69a", lineWidth: 2, priceScaleId: "left", title: "GDP Growth %" });
     historySeries.gdp.setData(gdpPts);
   }
   chart.timeScale().fitContent();
@@ -499,9 +508,11 @@ function showMacroView(view){
   const latestCpi = cpiPts[cpiPts.length - 1];
   const latestGdp = gdpPts[gdpPts.length - 1];
   document.getElementById("chartPrice").textContent = latestCpi ? latestCpi.value.toFixed(2) : "—";
-  document.getElementById("chartChange").textContent = latestGdp ? `GDP growth: ${latestGdp.value.toFixed(2)}%` : "";
-  document.getElementById("chartChange").className = "text-[13px] font-mono-data font-medium text-[var(--text-mid)]";
+  const el2 = document.getElementById("chartChange");
+  el2.textContent = latestGdp ? `GDP growth: ${latestGdp.value.toFixed(2)}%` : "";
+  el2.className = "text-[13px] font-mono-data font-medium text-[var(--text-mid)]";
 }
+
 /* ==========================================================================
    CHART
    ========================================================================== */
@@ -655,14 +666,9 @@ document.querySelectorAll(".nav-link, .nav-link-m").forEach(btn => {
   renderTicker();
   renderRangeButtons();
   initChart();
-   
-    document.getElementById("macroHistoryToggle").classList.add("hidden");
-    document.getElementById("macroHistoryToggle").classList.remove("flex");
-    series.applyOptions({ visible: true });
-    renderWatchlist();
-    updateChartHeader();
-    loadChartData(STATE.activeRange);
-  }
+  renderWatchlist();
+  updateChartHeader();
+  loadChartData(STATE.activeRange);
   tickClock();
   setInterval(tickClock, 1000);
 })();
