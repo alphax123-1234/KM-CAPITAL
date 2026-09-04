@@ -249,20 +249,34 @@ async function loadJSON(path){
   }
 }
 
-async function fetchLiveUsdUgx(art_live_mfRjVNopyBzkv43O7aRH4VeEn5t6PJv0){
-  // AllRatesToday free tier — real endpoint, but requires a personal API key,
-  // so this call is expected to fail gracefully without one configured.
+async function fetchLiveUsdUgx(){
+  // AllRatesToday free tier — real endpoint, verified against their docs.
   // Get a free key at https://allratestoday.com and set API_KEY below to enable it.
-  const API_KEY = ""; // <-- put your free AllRatesToday key here to go live
+  // Free tier = 100 requests/month, so we cache the result for 24h in
+  // localStorage rather than fetching on every single page load.
+  const API_KEY = "art_live_mfRjVNopyBzkv43O7aRH4VeEn5t6PJv0"; // <-- put your free AllRatesToday key here to go live
   if(!API_KEY) return null;
+
   try{
-    const res = await fetch(`https://allratestoday.com/api/v1/rates?source=USD&target=UGX`, {
+    const cacheKey = "usdugx_cache_v1";
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+    if(cached && (Date.now() - cached.fetchedAt) < ONE_DAY){
+      return cached.rate;
+    }
+
+    const res = await fetch(`https://api.allratestoday.com/v1/latest?base=USD&symbols=UGX`, {
       headers: { Authorization: `Bearer ${API_KEY}` }
     });
-    if(!res.ok) throw new Error("rate fetch failed");
+    if(!res.ok) throw new Error("rate fetch failed: " + res.status);
     const data = await res.json();
-    return data?.rate ?? null;
+    const rate = data?.rates?.UGX ?? null;
+    if(rate){
+      localStorage.setItem(cacheKey, JSON.stringify({ rate, fetchedAt: Date.now() }));
+    }
+    return rate;
   }catch(e){
+    console.warn("AllRatesToday fetch failed, falling back to manual rate:", e.message);
     return null;
   }
 }
