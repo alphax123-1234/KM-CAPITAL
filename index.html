@@ -474,6 +474,7 @@ function showMacroView(view){
 
   // "history" view — CPI & GDP growth pulled from data/macro_timeseries.json (via ugatsdb)
   series.applyOptions({ visible: false });
+  series.setData([]); // clear old candle data so it stops skewing the shared price scale
   clearHistorySeries();
 
   const hasCpi = STATE.macroHistory?.series?.cpi?.points?.length > 0;
