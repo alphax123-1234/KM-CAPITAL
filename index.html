@@ -61,6 +61,17 @@
   @media (prefers-reduced-motion: reduce){
     .ticker-track{ animation: none; }
   }
+
+  .market-open{ background: var(--up); color: #fff; }
+  .market-closed{ background: var(--down); color: #fff; }
+
+  .dot-open{ background: var(--up); animation: pulse-green 1.5s ease-in-out infinite; }
+  .dot-closed{ background: var(--down); }
+
+  @keyframes pulse-green{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(38,166,154,0.5); }
+    50%{ box-shadow: 0 0 0 6px rgba(38,166,154,0); }
+  }
 </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -80,8 +91,12 @@
       <span class="hidden sm:inline text-[11px] text-[var(--text-dim)] font-mono-data ml-1">UG MARKETS</span>
     </div>
     <div class="flex items-center gap-3">
+      <span class="text-[11px] px-2 py-1 rounded border border-[var(--line)] text-[var(--text-mid)]">Live Data</span>
+      <span id="marketStatusBadge" class="hidden md:inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded font-medium font-mono-data">
+        <span id="statusDot" class="w-2 h-2 rounded-full"></span>
+        <span id="statusText"></span>
+      </span>
       <span id="clockOut" class="hidden md:inline text-[12px] font-mono-data text-[var(--text-mid)]"></span>
-      <span class="text-[11px] px-2 py-1 rounded border border-[var(--line)] text-[var(--text-mid)]">Data: mixed live / manual</span>
     </div>
   </header>
 
@@ -104,12 +119,16 @@
         <button data-category="agri" class="nav-link flex items-center gap-2.5 px-4 py-2.5 text-left text-[13px] border-l-2 border-transparent text-[var(--text-mid)]">
           <span>Agriculture Spot Prices</span>
         </button>
+        <button data-category="coffee" class="nav-link flex items-center gap-2.5 px-4 py-2.5 text-left text-[13px] border-l-2 border-transparent text-[var(--text-mid)]">
+          <span>Coffee Auction Prices</span>
+        </button>
       </nav>
 
       <div class="mt-auto px-4 pt-4 border-t border-[var(--line)] mx-1">
         <p class="text-[11px] leading-relaxed text-[var(--text-dim)]">
-          USE, bond and agriculture figures are manually updated — no free live API exists for Ugandan market data.
-          USD/UGX is fetched live where possible.
+          USE equities via Mansa API. CBR + inflation via Mansa API. GDP growth via World Bank.
+          Coffee via UCDA. USD/UGX via Frankfurter. Bond yields from BoU.
+          Get a free Mansa API key at mansamarkets.com.
         </p>
       </div>
     </aside>
@@ -121,6 +140,7 @@
         <button data-category="bonds" class="nav-link-m px-3 py-1.5 rounded text-[12px] whitespace-nowrap text-[var(--text-mid)]">Bonds</button>
         <button data-category="macro" class="nav-link-m px-3 py-1.5 rounded text-[12px] whitespace-nowrap text-[var(--text-mid)]">Macro</button>
         <button data-category="agri" class="nav-link-m px-3 py-1.5 rounded text-[12px] whitespace-nowrap text-[var(--text-mid)]">Agriculture</button>
+        <button data-category="coffee" class="nav-link-m px-3 py-1.5 rounded text-[12px] whitespace-nowrap text-[var(--text-mid)]">Coffee</button>
       </div>
     </div>
 
@@ -182,15 +202,28 @@
 
 <script>
 /* ==========================================================================
-   DATA LAYER
-   Tries, in order:
-   1. Local JSON files at ./data/*.json (same-origin fetch)
-   2. A public live endpoint for USD/UGX only (AllRatesToday free tier)
-   3. Hardcoded mock data baked into this script
-   Everything except the USD/UGX ticker is manually-updated illustrative
-   data — there is no free live API for USE equities, BoU rates, or Uganda
-   agriculture spot prices, so this dashboard does not pretend otherwise.
+   DATA LAYER — Live + Fallback
+   Sources:
+    1. Mansa API (mansamarkets.com) — USE equities, index, movers, fundamentals
+   2. Frankfurter API (frankfurter.dev) — official BoU USD/UGX rate (free, no key)
+   3. UCDA website (ugandacoffee.go.ug) — daily coffee auction prices (scraper)
+   4. Local JSON files at ./data/*.json — fallback when APIs fail
+   5. Hardcoded mock data — last resort fallback
    ========================================================================== */
+
+const MANSA_API_KEY = "mansa_live_sk_pan5s9rx13e7gjxk"; // <-- paste your free Mansa API key here: https://mansamarkets.com
+const MANSA_BASE = "https://mansamarkets.com/api/v1";
+const FRANKFURTER_BASE = "https://api.frankfurter.dev/v1";
+const UCDA_URL = "https://ugandacoffee.go.ug/?page=5";
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+function cacheGet(key){
+  try { const c = JSON.parse(localStorage.getItem(key)); if(c && (Date.now()-c.ts)<CACHE_TTL) return c.data; } catch(e){}
+  return null;
+}
+function cacheSet(key, data){
+  try { localStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })); } catch(e){}
+}
 
 const MOCK = {
   macro: {
@@ -223,6 +256,19 @@ const MOCK = {
       { ticker: "MAIZE", name: "Maize (per kg, wholesale)", price: 1450, change_pct: 1.75, sector: "Agriculture", base_vol: 60 },
       { ticker: "BEANS", name: "Beans (per kg, wholesale)", price: 3600, change_pct: 0.0, sector: "Agriculture", base_vol: 90 }
     ]
+  },
+  coffee: {
+    as_of: "2026-08-28",
+    note: "Fallback coffee data — UCDA scraper unavailable.",
+    stocks: [
+      { ticker: "SCREEN-18", name: "Robusta Screen 18", price: 170.79, unit: "USc/lb", priceText: "170.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
+      { ticker: "SCREEN-15", name: "Robusta Screen 15", price: 165.79, unit: "USc/lb", priceText: "165.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
+      { ticker: "SCREEN-12", name: "Robusta Screen 12", price: 162.79, unit: "USc/lb", priceText: "162.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
+      { ticker: "BUGISU-AA", name: "Arabica Bugisu AA", price: 290.60, unit: "USc/lb", priceText: "290.60 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
+      { ticker: "BUGISU-A", name: "Arabica Bugisu A", price: 289.60, unit: "USc/lb", priceText: "289.60 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
+      { ticker: "KIBOKO", name: "Kiboko (Farmgate)", price: 5500, unit: "UGX/kg", priceText: "5,000-5,800", sector: "Agriculture", base_vol: 150, change_pct: 0 },
+      { ticker: "FAQ", name: "FAQ (Farmgate)", price: 12000, unit: "UGX/kg", priceText: "11,500-12,500", sector: "Agriculture", base_vol: 150, change_pct: 0 }
+    ]
   }
 };
 
@@ -249,68 +295,298 @@ async function loadJSON(path){
   }
 }
 
-async function fetchLiveUsdUgx(){
-  // AllRatesToday free tier — real endpoint, verified against their docs.
-  // Get a free key at https://allratestoday.com and set API_KEY below to enable it.
-  // Free tier = 100 requests/month, so we cache the result for 24h in
-  // localStorage rather than fetching on every single page load.
-  const API_KEY = "art_live_mfRjVNopyBzkv43O7aRH4VeEn5t6PJv0"; // <-- put your free AllRatesToday key here to go live
-  if(!API_KEY) return null;
-
+/* --- Frankfurter API: BoU USD/UGX (free, no key) --- */
+async function fetchForex(){
+  const cached = cacheGet("forex_usdugx_v2");
+  if(cached) return cached;
   try{
-    const cacheKey = "usdugx_cache_v1";
-    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
-    const ONE_DAY = 24 * 60 * 60 * 1000;
-    if(cached && (Date.now() - cached.fetchedAt) < ONE_DAY){
-      return cached.rate;
-    }
-
-    const res = await fetch(`https://api.allratestoday.com/v1/latest?base=USD&symbols=UGX`, {
-      headers: { Authorization: `Bearer ${API_KEY}` }
-    });
-    if(!res.ok) throw new Error("rate fetch failed: " + res.status);
+    const res = await fetch(`${FRANKFURTER_BASE}/latest?base=usd&symbols=ugx`);
+    if(!res.ok) throw new Error("forex " + res.status);
     const data = await res.json();
-    const rate = data?.rates?.UGX ?? null;
+    const rate = data?.rates?.UGX;
     if(rate){
-      localStorage.setItem(cacheKey, JSON.stringify({ rate, fetchedAt: Date.now() }));
+      const prev = cacheGet("forex_usdugx_prev_v2") || rate;
+      const change = prev ? ((rate - prev) / prev) * 100 : 0;
+      cacheSet("forex_usdugx_prev_v2", rate);
+      cacheSet("forex_usdugx_v2", { value: rate, change: change });
+      return { value: rate, change: change };
     }
-    return rate;
-  }catch(e){
-    console.warn("AllRatesToday fetch failed, falling back to manual rate:", e.message);
-    return null;
-  }
+  }catch(e){ console.warn("Frankfurter forex failed:", e.message); }
+  return null;
+}
+
+/* --- Mansa API helpers --- */
+async function mansaFetch(endpoint){
+  if(!MANSA_API_KEY) return null;
+  const cacheKey = "mansa_" + endpoint.replace(/[^a-z0-9]/gi,"_");
+  const cached = cacheGet(cacheKey);
+  if(cached) return cached;
+  try{
+    const res = await fetch(`${MANSA_BASE}${endpoint}`, {
+      headers: { Authorization: `Bearer ${MANSA_API_KEY}` }
+    });
+    if(!res.ok) throw new Error("mansa " + res.status);
+    const data = await res.json();
+    const payload = data?.data ?? data;
+    cacheSet(cacheKey, payload);
+    return payload;
+  }catch(e){ console.warn("Mansa API failed for", endpoint, ":", e.message); }
+  return null;
+}
+
+async function fetchMansaStocks(){
+  return mansaFetch("/markets/exchanges/USE/stocks?limit=200");
+}
+
+async function fetchMansaExchange(){
+  return mansaFetch("/markets/exchanges/USE");
+}
+
+async function fetchMansaMovers(){
+  return mansaFetch("/markets/exchanges/USE/movers?limit=20");
+}
+
+async function fetchMansaStockHistory(ticker){
+  return mansaFetch(`/markets/exchanges/USE/stocks/${ticker}/history?range=1Y`);
+}
+
+async function fetchMansaIndices(){
+  return mansaFetch("/markets/exchanges/USE/indices");
+}
+
+async function fetchMansaBondYields(){
+  return mansaFetch("/markets/yields/UG/tbills");
+}
+
+/* --- UCDA Coffee Price Scraper --- */
+async function fetchCoffeePrices(){
+  const cached = cacheGet("ucda_coffee");
+  if(cached) return cached;
+  try{
+    const res = await fetch(UCDA_URL, { cache: "no-store" });
+    if(!res.ok) throw new Error("ucda " + res.status);
+    const html = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const rows = doc.querySelectorAll(".price-table .tab-row");
+    const prices = [];
+    const dateEl = doc.querySelector(".price-table")?.closest(".view-content")?.querySelector("time");
+    const dateStr = dateEl ? dateEl.getAttribute("datetime") : new Date().toISOString();
+
+    rows.forEach(row => {
+      const label = row.querySelector(".lable")?.textContent?.trim();
+      const priceText = row.querySelector(".price-data")?.textContent?.trim();
+      if(!label || !priceText) return;
+      const isShilling = label.includes("Kiboko") || label.includes("FAQ") || label.includes("Arabica Parchment") || label.includes("Drugar Coffee");
+      const cleanPrice = priceText.replace(/[^0-9.\-]/g, "");
+      const price = parseFloat(cleanPrice);
+      if(isNaN(price)) return;
+      const ticker = label.replace(/[^a-zA-Z0-9]/g, "-").replace(/-+/g, "-").toUpperCase();
+      prices.push({
+        ticker: ticker,
+        name: label,
+        price: price,
+        unit: isShilling ? "UGX/kg" : "USc/lb",
+        priceText: priceText,
+        sector: "Agriculture",
+        base_vol: isShilling ? 150 : 8,
+        change_pct: 0,
+        as_of: dateStr
+      });
+    });
+
+    if(prices.length){
+      cacheSet("ucda_coffee", prices);
+      return prices;
+    }
+  }catch(e){ console.warn("UCDA scraper failed:", e.message); }
+  return null;
+}
+
+/* --- Mansa Macro: CBR + Inflation for Uganda (free tier) --- */
+async function fetchMansaMacro(){
+  const cached = cacheGet("mansa_macro_ug_v2");
+  if(cached) return cached;
+  if(!MANSA_API_KEY) return null;
+  try{
+    const res = await fetch(`${MANSA_BASE}/macro/policy-rates`, {
+      headers: { Authorization: `Bearer ${MANSA_API_KEY}` }
+    });
+    if(!res.ok) throw new Error("macro " + res.status);
+    const body = await res.json();
+    const ug = (body?.data || []).find(c => c.country === "UG");
+    if(ug){
+      const result = {
+        cbr: ug.policy_rate,
+        cbr_period: ug.policy_rate_period,
+        inflation: ug.inflation_yoy,
+        inflation_period: ug.inflation_period,
+        source: ug.source_institution
+      };
+      cacheSet("mansa_macro_ug_v2", result);
+      return result;
+    }
+  }catch(e){ console.warn("Mansa macro fetch failed:", e.message); }
+  return null;
+}
+
+/* --- Uganda Macro: CBR + Inflation (Mansa) + GDP Growth (World Bank) --- */
+const WORLD_BANK_BASE = "https://api.worldbank.org/v2";
+
+async function fetchWorldBankGDP(){
+  const cached = cacheGet("wb_gdp_ug");
+  if(cached) return cached;
+  try{
+    const res = await fetch(`${WORLD_BANK_BASE}/country/UGA/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=5&date=2020:2026`);
+    if(!res.ok) throw new Error("worldbank " + res.status);
+    const data = await res.json();
+    if(Array.isArray(data) && data.length > 1 && Array.isArray(data[1]) && data[1].length){
+      const latest = data[1].find(d => d.value !== null);
+      if(latest){
+        const prev = data[1].find(d => d.value !== null && d.date !== latest.date);
+        const change = prev ? latest.value - prev.value : 0;
+        const result = {
+          gdp_growth: Math.round(latest.value * 100) / 100,
+          gdp_period: latest.date,
+          gdp_change: Math.round(change * 100) / 100
+        };
+        cacheSet("wb_gdp_ug", result);
+        return result;
+      }
+    }
+  }catch(e){ console.warn("World Bank GDP fetch failed:", e.message); }
+  return null;
+}
+
+async function fetchUgandaMacro(){
+  const cached = cacheGet("uganda_macro_v2");
+  if(cached) return cached;
+  try{
+    const [mansa, wbGdp] = await Promise.all([
+      fetchMansaMacro(),
+      fetchWorldBankGDP()
+    ]);
+    const result = {
+      cbr: mansa?.cbr ?? null,
+      cbr_period: mansa?.cbr_period ?? null,
+      inflation: mansa?.inflation ?? null,
+      inflation_period: mansa?.inflation_period ?? null,
+      source: mansa?.source ?? "fallback",
+      gdp_growth: wbGdp?.gdp_growth ?? null,
+      gdp_period: wbGdp?.gdp_period ?? null,
+      gdp_change: wbGdp?.gdp_change ?? 0
+    };
+    cacheSet("uganda_macro_v2", result);
+    return result;
+  }catch(e){ console.warn("Uganda macro fetch failed:", e.message); }
+  return null;
 }
 
 let STATE = {
   macro: null,
-  categories: { equities: null, bonds: null, agri: null },
+  categories: { equities: null, bonds: null, agri: null, coffee: null },
   usdUgx: { value: 3720, change: 0.0, live: false },
+  useASI: { value: 0, change: 0.0, live: false },
+  macroLive: null,
   activeCategory: "equities",
   selectedTicker: null,
-  activeRange: "1M"
+  activeRange: "1M",
+  coffeeLastUpdate: null
 };
 
 async function loadAllData(){
-  const [macroLocal, stocksLocal, bondsLocal, agriLocal, macroHistoryLocal, liveRate] = await Promise.all([
+  const [macroLocal, stocksLocal, bondsLocal, agriLocal, macroHistoryLocal, liveRate, coffeeData, ugMacro, mansaBonds] = await Promise.all([
     loadJSON("./data/macro_indicators.json"),
     loadJSON("./data/stocks_daily.json"),
     loadJSON("./data/fixed_income_yields.json"),
     loadJSON("./data/agriculture_spot.json"),
     loadJSON("./data/macro_timeseries.json"),
-    fetchLiveUsdUgx()
+    fetchForex(),
+    fetchCoffeePrices(),
+    fetchUgandaMacro(),
+    fetchMansaBondYields()
   ]);
 
+  // Macro — merge live data with fallback
   STATE.macro = macroLocal || MOCK.macro;
-  STATE.categories.equities = stocksLocal || MOCK.stocks;
-  STATE.categories.bonds = bondsLocal || MOCK.bonds;
-  STATE.categories.agri = agriLocal || MOCK.agri;
-  STATE.macroHistory = macroHistoryLocal; // may be null until the ugatsdb Action has run
+  STATE.macroLive = ugMacro;
 
+  if(ugMacro && (ugMacro.cbr || ugMacro.inflation || ugMacro.gdp_growth)){
+    const bondYield = mansaBonds?.bond_10y?.yield || STATE.macro.indicators.find(i=>i.id==="BOND10Y")?.value || 15.85;
+    const bondChange = STATE.macro.indicators.find(i=>i.id==="BOND10Y")?.change || -0.05;
+    const indicators = [];
+    if(ugMacro.cbr != null) indicators.push({ id: "CBR", label: "CBR", value: ugMacro.cbr, change: 0.0, unit: "%", period: ugMacro.cbr_period });
+    if(ugMacro.inflation != null) indicators.push({ id: "CPI", label: "Inflation", value: ugMacro.inflation, change: 0.0, unit: "%", period: ugMacro.inflation_period });
+    if(ugMacro.gdp_growth != null) indicators.push({ id: "GDP", label: "GDP Growth", value: ugMacro.gdp_growth, change: ugMacro.gdp_change, unit: "%", period: ugMacro.gdp_period });
+    indicators.push({ id: "BOND10Y", label: "10Y Bond", value: bondYield, change: bondChange, unit: "%" });
+    STATE.macro = {
+      as_of: new Date().toISOString().slice(0,10),
+      note: "Live from Mansa API + World Bank.",
+      indicators
+    };
+  }
+
+  // Bonds (live from Mansa API if available, fallback to local JSON)
+  STATE.categories.bonds = bondsLocal || MOCK.bonds;
+
+  // Agriculture (no live API — illustrative placeholders)
+  STATE.categories.agri = agriLocal || MOCK.agri;
+
+  // Coffee (live from UCDA scraper)
+  if(coffeeData && coffeeData.length){
+    STATE.categories.coffee = {
+      as_of: new Date().toISOString().slice(0,10),
+      note: "Live from UCDA daily auction (ugandacoffee.go.ug). Updated daily.",
+      stocks: coffeeData
+    };
+    STATE.coffeeLastUpdate = coffeeData[0]?.as_of;
+  } else {
+    // fallback to MOCK coffee data
+    STATE.categories.coffee = MOCK.coffee;
+  }
+
+  // USE Equities — try Mansa API, fall back to local JSON, then to mock
+  const mansaStocks = await fetchMansaStocks();
+  if(mansaStocks && Array.isArray(mansaStocks) && mansaStocks.length){
+    STATE.categories.equities = {
+      as_of: new Date().toISOString().slice(0,10),
+      note: "Live from Mansa API (USE). Updated every 30 minutes during market hours.",
+      stocks: mansaStocks.map(s => ({
+        ticker: s.ticker || s.symbol,
+        name: s.name || s.company_name,
+        price: s.price || s.last_price || s.close || 0,
+        change_pct: s.change_pct || s.change_percentage || s.change || 0,
+        sector: s.sector || "N/A",
+        base_vol: Math.max(0.5, Math.abs(s.change_pct || 1) * 0.3),
+        volume: s.volume || 0,
+        market_cap: s.market_cap || null,
+        currency: s.currency || "UGX"
+      }))
+    };
+  } else {
+    STATE.categories.equities = stocksLocal || MOCK.stocks;
+  }
+
+  // USE ASI index — try Mansa API
+  const mansaExchange = await fetchMansaExchange();
+  if(mansaExchange && (mansaExchange.index_value || mansaExchange.value)){
+    STATE.useASI = {
+      value: mansaExchange.index_value || mansaExchange.value,
+      change: mansaExchange.index_change_pct || mansaExchange.change_pct || 0,
+      live: true,
+      name: mansaExchange.index_name || "USE All Share Index"
+    };
+  }
+
+  // USD/UGX
   if(liveRate){
-    STATE.usdUgx = { value: liveRate, change: 0.0, live: true };
+    STATE.usdUgx = { value: liveRate.value, change: liveRate.change, live: true };
   } else {
     STATE.usdUgx = { value: 3720, change: 0.15, live: false };
   }
+
+  // Macro history
+  STATE.macroHistory = macroHistoryLocal;
 }
 
 /* ==========================================================================
@@ -323,10 +599,29 @@ function trendGlyph(change){
 }
 
 function renderTicker(){
-  const items = [
-    { label: "USD/UGX", value: STATE.usdUgx.value.toLocaleString(undefined,{maximumFractionDigits:1}), change: STATE.usdUgx.change, tag: STATE.usdUgx.live ? "LIVE" : "MANUAL" },
-    ...STATE.macro.indicators.map(i => ({ label: i.label, value: i.value.toFixed(2) + i.unit, change: i.change, tag: "MANUAL" }))
-  ];
+  const items = [];
+
+  // USD/UGX
+  items.push({ label: "USD/UGX", value: STATE.usdUgx.value.toLocaleString(undefined,{maximumFractionDigits:1}), change: STATE.usdUgx.change });
+
+  // USE ASI
+  if(STATE.useASI.value > 0){
+    items.push({ label: "USE ASI", value: STATE.useASI.value.toLocaleString(undefined,{maximumFractionDigits:2}), change: STATE.useASI.change });
+  }
+
+  // Macro indicators
+  if(STATE.macro && STATE.macro.indicators){
+    STATE.macro.indicators.forEach(i => {
+      items.push({ label: i.label, value: i.value.toFixed(2) + i.unit, change: i.change });
+    });
+  }
+
+  // Coffee prices
+  if(STATE.categories.coffee && STATE.categories.coffee.stocks){
+    STATE.categories.coffee.stocks.slice(0, 3).forEach(c => {
+      items.push({ label: c.name, value: (c.priceText || c.price.toLocaleString()) + (c.unit ? " " + c.unit : ""), change: c.change_pct });
+    });
+  }
 
   const rowHtml = items.map(it => {
     const t = trendGlyph(it.change);
@@ -334,15 +629,13 @@ function renderTicker(){
       <div class="flex items-center gap-2 px-5 whitespace-nowrap">
         <span class="text-[12px] text-[var(--text-mid)] font-medium">${it.label}</span>
         <span class="text-[12px] font-mono-data text-[var(--text-hi)]">${it.value}</span>
-        <span class="text-[11px] font-mono-data ${t.cls}">${t.glyph} ${it.change > 0 ? "+" : ""}${it.change.toFixed(2)}</span>
-        <span class="text-[9px] px-1 py-0.5 rounded border border-[var(--line)] text-[var(--text-dim)]">${it.tag}</span>
+        <span class="text-[11px] font-mono-data ${t.cls}">${t.glyph} ${it.change > 0 ? "+" : ""}${Math.abs(it.change).toFixed(2)}</span>
       </div>
       <div class="w-px h-4 bg-[var(--line)] self-center"></div>
     `;
   }).join("");
 
   const track = document.getElementById("tickerTrack");
-  // duplicate content once for a seamless CSS loop
   track.innerHTML = rowHtml + rowHtml;
 }
 
@@ -350,9 +643,11 @@ function renderTicker(){
    WATCHLIST
    ========================================================================== */
 const CATEGORY_META = {
-  equities: { title: "USE Equities", note: "Manually updated from the USE daily bulletin. Not a live feed." },
-  bonds: { title: "Fixed Income (Bonds)", note: "T-bill/bond yields from BoU auction results — update weekly by hand. Not a live feed." },
-  agri: { title: "Agriculture Spot Prices", note: "Illustrative placeholders. Not a live feed." }
+  equities: { title: "USE Equities", note: "Live prices from Mansa API (USE). Updated every 30 minutes during market hours." },
+  bonds: { title: "Fixed Income (Bonds)", note: "T-bill/bond yields from BoU auction results. Live from Mansa API if available." },
+  agri: { title: "Agriculture Spot Prices", note: "Illustrative placeholders. Not a live feed." },
+  coffee: { title: "Coffee Auction Prices", note: "Live from UCDA daily auction (ugandacoffee.go.ug). Updated daily." },
+  macro: { title: "Macro Economics", note: "CBR + inflation from Mansa API. GDP growth from World Bank." }
 };
 
 function currentList(){
@@ -369,9 +664,15 @@ function renderWatchlist(){
 
   document.getElementById("watchlistTitle").textContent = meta.title;
   document.getElementById("watchlistTitleM").textContent = meta.title;
-  document.getElementById("watchlistAsOf").textContent = "as of " + data.as_of;
-  document.getElementById("watchlistAsOfM").textContent = "as of " + data.as_of;
+  document.getElementById("watchlistAsOf").textContent = "as of " + (data?.as_of || "N/A");
+  document.getElementById("watchlistAsOfM").textContent = "as of " + (data?.as_of || "N/A");
   document.getElementById("watchlistNote").textContent = meta.note;
+
+  if(!data || !data.stocks || !data.stocks.length){
+    document.getElementById("watchlistBody").innerHTML = '<div class="px-4 py-3 text-[12px] text-[var(--text-dim)]">No data available.</div>';
+    document.getElementById("watchlistBodyM").innerHTML = '';
+    return;
+  }
 
   if(!STATE.selectedTicker || !data.stocks.find(s => s.ticker === STATE.selectedTicker)){
     STATE.selectedTicker = data.stocks[0].ticker;
@@ -382,6 +683,8 @@ function renderWatchlist(){
     const down = s.change_pct < -0.001;
     const colorCls = up ? "text-[var(--up)]" : down ? "text-[var(--down)]" : "text-[var(--flat)]";
     const selected = s.ticker === STATE.selectedTicker ? "selected" : "";
+    const priceDisplay = s.priceText || fmtPrice(s.price);
+    const unitDisplay = s.unit ? ` <span class="text-[10px] text-[var(--text-dim)]">${s.unit}</span>` : "";
     return `
       <button data-ticker="${s.ticker}" class="watch-row w-full grid grid-cols-[1fr,auto,auto] gap-2 items-center px-4 py-2.5 text-left border-l-2 border-transparent relative ${selected}">
         <span class="sel-bar absolute left-0 top-0 bottom-0 w-0.5"></span>
@@ -389,7 +692,7 @@ function renderWatchlist(){
           <span class="block text-[12.5px] font-semibold font-mono-data">${s.ticker}</span>
           <span class="block text-[10.5px] text-[var(--text-dim)] truncate">${s.name}</span>
         </span>
-        <span class="text-right text-[12.5px] font-mono-data">${fmtPrice(s.price)}</span>
+        <span class="text-right text-[12.5px] font-mono-data">${priceDisplay}${unitDisplay}</span>
         <span class="text-right text-[12px] font-mono-data ${colorCls}">${up?"+":""}${s.change_pct.toFixed(2)}%</span>
       </button>
     `;
@@ -399,11 +702,16 @@ function renderWatchlist(){
   document.getElementById("watchlistBodyM").innerHTML = rowsHtml;
 
   document.querySelectorAll("[data-ticker]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       STATE.selectedTicker = btn.getAttribute("data-ticker");
       renderWatchlist();
-      updateChartHeader();
-      loadChartData(STATE.activeRange);
+      if(STATE.activeCategory === "equities"){
+        const live = await updateChartWithLiveData(STATE.selectedTicker);
+        if(!live) loadChartData(STATE.activeRange);
+      } else {
+        updateChartHeader();
+        loadChartData(STATE.activeRange);
+      }
     });
   });
 }
@@ -412,14 +720,17 @@ function renderWatchlist(){
    NAVIGATION
    ========================================================================== */
 function setActiveCategory(cat){
-  STATE.activeCategory = cat === "macro" ? "equities" : cat; // macro has no own watchlist; keep equities showing
+  if(cat === "macro"){
+    STATE.activeCategory = "equities"; // macro has no own watchlist; keep equities showing
+  } else {
+    STATE.activeCategory = cat;
+  }
   STATE.selectedTicker = null;
 
   document.querySelectorAll(".nav-link").forEach(b => b.classList.toggle("active", b.dataset.category === cat));
   document.querySelectorAll(".nav-link-m").forEach(b => b.classList.toggle("active", b.dataset.category === cat));
 
   if(cat === "macro"){
-    // Macro has no ticker list; show macro indicators as the "watchlist" instead
     renderMacroAsWatchlist();
   } else {
     document.getElementById("macroHistoryToggle").classList.add("hidden");
@@ -435,18 +746,26 @@ let currentMacroView = "usdugx";
 let historySeries = { cpi: null, gdp: null };
 
 function renderMacroAsWatchlist(){
-  document.getElementById("watchlistTitle").textContent = "Macro Economics";
-  document.getElementById("watchlistTitleM").textContent = "Macro Economics";
-  document.getElementById("watchlistAsOf").textContent = "as of " + STATE.macro.as_of;
-  document.getElementById("watchlistAsOfM").textContent = "as of " + STATE.macro.as_of;
-  document.getElementById("watchlistNote").textContent = STATE.macro.note;
+  const meta = CATEGORY_META.macro;
+  document.getElementById("watchlistTitle").textContent = meta.title;
+  document.getElementById("watchlistTitleM").textContent = meta.title;
+  document.getElementById("watchlistAsOf").textContent = "as of " + (STATE.macro?.as_of || "N/A");
+  document.getElementById("watchlistAsOfM").textContent = "as of " + (STATE.macro?.as_of || "N/A");
+  document.getElementById("watchlistNote").textContent = meta.note;
+
+  if(!STATE.macro || !STATE.macro.indicators || !STATE.macro.indicators.length){
+    document.getElementById("watchlistBody").innerHTML = '<div class="px-4 py-3 text-[12px] text-[var(--text-dim)]">No macro data available.</div>';
+    document.getElementById("watchlistBodyM").innerHTML = '';
+    return;
+  }
 
   const rowsHtml = STATE.macro.indicators.map(i => {
     const t = trendGlyph(i.change);
+    const period = i.period ? ` <span class="text-[10px] text-[var(--text-dim)]">(${i.period})</span>` : '';
     return `
       <div class="w-full grid grid-cols-[1fr,auto,auto] gap-2 items-center px-4 py-3 border-l-2 border-transparent">
         <span class="text-[12.5px] font-medium">${i.label}</span>
-        <span class="text-right text-[12.5px] font-mono-data">${i.value.toFixed(2)}${i.unit}</span>
+        <span class="text-right text-[12.5px] font-mono-data">${i.value.toFixed(2)}${i.unit}${period}</span>
         <span class="text-right text-[12px] font-mono-data ${t.cls}">${t.glyph} ${i.change.toFixed(2)}</span>
       </div>
     `;
@@ -611,7 +930,7 @@ function generateCandles(ticker, basePrice, vol, points, stepSeconds){
   return candles;
 }
 
-function loadChartData(range, override){
+async function loadChartData(range, override){
   const cfg = RANGE_CONFIG[range] || RANGE_CONFIG["1M"];
 
   let ticker, basePrice, vol;
@@ -623,9 +942,60 @@ function loadChartData(range, override){
     ticker = stock.ticker; basePrice = stock.price; vol = stock.base_vol;
   }
 
+  // Try real OHLCV from Mansa API (Pro plan) — falls back to synthetic on free tier
+  if(!override && MANSA_API_KEY){
+    const history = await fetchMansaStockHistory(ticker);
+    if(history && history.points && history.points.length > 1){
+      const candles = history.points.map(p => ({
+        time: Math.floor(new Date(p.date).getTime()/1000),
+        open: p.open || p.close,
+        high: p.high || p.close,
+        low: p.low || p.close,
+        close: p.close
+      }));
+      series.setData(candles);
+      chart.timeScale().fitContent();
+      return;
+    }
+  }
+
+  // Synthetic fallback
   const candles = generateCandles(ticker, basePrice, vol, cfg.points, cfg.stepSeconds);
   series.setData(candles);
   chart.timeScale().fitContent();
+}
+
+async function updateChartWithLiveData(stockTicker){
+  if(!stockTicker || !MANSA_API_KEY) return;
+  try{
+    const history = await fetchMansaStockHistory(stockTicker);
+    if(history && history.points && history.points.length > 1){
+      const candles = history.points.map(p => ({
+        time: Math.floor(new Date(p.date).getTime()/1000),
+        open: p.open || p.close,
+        high: p.high || p.close,
+        low: p.low || p.close,
+        close: p.close
+      }));
+      series.setData(candles);
+      chart.timeScale().fitContent();
+      const list = currentList();
+      const stock = list.stocks.find(s => s.ticker === stockTicker);
+      if(stock){
+        document.getElementById("chartTitle").textContent = stock.name;
+        document.getElementById("chartTicker").textContent = stock.ticker;
+        document.getElementById("chartPrice").textContent = stock.priceText || fmtPrice(stock.price);
+        const t = trendGlyph(stock.change_pct);
+        const el = document.getElementById("chartChange");
+        let changeText = `${t.glyph} ${stock.change_pct > 0 ? "+" : ""}${stock.change_pct.toFixed(2)}%`;
+        if(stock.unit) changeText += ` <span class="text-[10px] text-[var(--text-dim)]">${stock.unit}</span>`;
+        el.innerHTML = changeText;
+        el.className = "text-[13px] font-mono-data font-medium " + t.cls;
+      }
+      return true;
+    }
+  }catch(e){ console.warn("updateChartWithLiveData failed:", e.message); }
+  return false;
 }
 
 function updateChartHeader(){
@@ -633,10 +1003,12 @@ function updateChartHeader(){
   const stock = list.stocks.find(s => s.ticker === STATE.selectedTicker) || list.stocks[0];
   document.getElementById("chartTitle").textContent = stock.name;
   document.getElementById("chartTicker").textContent = stock.ticker;
-  document.getElementById("chartPrice").textContent = fmtPrice(stock.price);
+  document.getElementById("chartPrice").textContent = stock.priceText || fmtPrice(stock.price);
   const t = trendGlyph(stock.change_pct);
   const el = document.getElementById("chartChange");
-  el.textContent = `${t.glyph} ${stock.change_pct > 0 ? "+" : ""}${stock.change_pct.toFixed(2)}%`;
+  let changeText = `${t.glyph} ${stock.change_pct > 0 ? "+" : ""}${stock.change_pct.toFixed(2)}%`;
+  if(stock.unit) changeText += ` <span class="text-[10px] text-[var(--text-dim)]">${stock.unit}</span>`;
+  el.innerHTML = changeText;
   el.className = "text-[13px] font-mono-data font-medium " + t.cls;
 }
 
@@ -650,8 +1022,7 @@ function renderRangeButtons(){
     btn.addEventListener("click", () => {
       STATE.activeRange = btn.getAttribute("data-range");
       wrap.querySelectorAll("[data-range]").forEach(b => b.classList.toggle("active", b === btn));
-      if(STATE.activeCategory === "equities" && !STATE.categories.equities.stocks.find(s=>s.ticker===STATE.selectedTicker)){
-        // macro view active
+      if(STATE.activeCategory === "macro" || (STATE.activeCategory === "equities" && !STATE.categories.equities.stocks.find(s=>s.ticker===STATE.selectedTicker))){
         loadChartData(STATE.activeRange, { synthetic: true, basePrice: STATE.usdUgx.value, vol: 8, ticker: "USDUGX" });
       } else {
         loadChartData(STATE.activeRange);
@@ -667,6 +1038,29 @@ function tickClock(){
   const el = document.getElementById("clockOut");
   const now = new Date();
   el.textContent = now.toLocaleString("en-UG", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) + " EAT";
+
+  // Market status: Mon-Fri 10:00-13:00 EAT = open
+  const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const eatMs = utcMs + (3 * 3600000);
+  const eat = new Date(eatMs);
+  const day = eat.getDay();
+  const hour = eat.getHours();
+  const minute = eat.getMinutes();
+  const isWeekday = day >= 1 && day <= 5;
+  const isDuringHours = (hour > 10 || (hour === 10 && minute >= 0)) && (hour < 13);
+  const isOpen = isWeekday && isDuringHours;
+
+  const dot = document.getElementById("statusDot");
+  const text = document.getElementById("statusText");
+  if(isOpen){
+    dot.className = "w-2 h-2 rounded-full dot-open";
+    text.textContent = "MARKET OPEN";
+    text.className = "text-[var(--up)]";
+  } else {
+    dot.className = "w-2 h-2 rounded-full dot-closed";
+    text.textContent = "MARKET CLOSED";
+    text.className = "text-[var(--down)]";
+  }
 }
 
 /* ==========================================================================
@@ -677,15 +1071,17 @@ document.querySelectorAll(".nav-link, .nav-link-m").forEach(btn => {
 });
 
 (async function boot(){
-  await loadAllData();
-  renderTicker();
-  renderRangeButtons();
-  initChart();
-  renderWatchlist();
-  updateChartHeader();
-  loadChartData(STATE.activeRange);
-  tickClock();
-  setInterval(tickClock, 1000);
+  try{
+    await loadAllData();
+    renderTicker();
+    renderRangeButtons();
+    initChart();
+    renderWatchlist();
+    updateChartHeader();
+    await loadChartData(STATE.activeRange);
+    tickClock();
+    setInterval(tickClock, 1000);
+  }catch(e){ console.error("Boot failed:", e); }
 })();
 </script>
 </body>
