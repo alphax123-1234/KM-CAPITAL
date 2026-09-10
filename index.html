@@ -244,7 +244,11 @@ tailwind.config = {
    ========================================================================== */
 
 const MANSA_API_KEY = CONFIG?.MANSA_API_KEY || "";
-const MANSA_BASE = "https://mansamarkets.com/api/v1";
+const MANSA_RAW = "https://mansamarkets.com/api/v1";
+const CORS_PROXIES = [
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`
+];
 const ER_API_BASE = "https://open.er-api.com/v6/latest/USD";
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -345,24 +349,59 @@ async function fetchForex(){
 }
 
 /* --- Mansa API helpers --- */
+async function tryFetch(url, headers){
+  const res = await fetch(url, { headers });
+  if(!res.ok) throw new Error("fetch " + res.status);
+  return await res.json();
+}
+
 async function mansaFetch(endpoint){
-  if(!MANSA_API_KEY) return { ok: false, data: null, status: 0 };
   const cacheKey = "mansa_" + endpoint.replace(/[^a-z0-9]/gi,"_");
   const cached = cacheGet(cacheKey);
   if(cached) return { ok: true, data: cached, status: 200 };
+
+  const fullUrl = MANSA_RAW + endpoint;
+  const authHeaders = MANSA_API_KEY ? { Authorization: `Bearer ${MANSA_API_KEY}` } : {};
+  const noAuth = {};
+
+  // 1. Direct (works if Mansa has CORS headers)
   try{
-    const res = await fetch(`${MANSA_BASE}${endpoint}`, {
-      headers: { Authorization: `Bearer ${MANSA_API_KEY}` }
-    });
-    if(!res.ok) return { ok: false, data: null, status: res.status };
-    const raw = await res.json();
-    const payload = raw?.data ?? raw;
+    const data = await tryFetch(fullUrl, authHeaders);
+    const payload = data?.data ?? data;
     cacheSet(cacheKey, payload);
     return { ok: true, data: payload, status: 200 };
-  }catch(e){
-    console.warn("Mansa API error for", endpoint, ":", e.message);
-    return { ok: false, data: null, status: 0 };
+  }catch(e){}
+
+  // 2. Direct without auth (public data)
+  try{
+    const data = await tryFetch(fullUrl, noAuth);
+    const payload = data?.data ?? data;
+    cacheSet(cacheKey, payload);
+    return { ok: true, data: payload, status: 200 };
+  }catch(e){}
+
+  // 3. CORS proxy with auth
+  for(const proxy of CORS_PROXIES){
+    try{
+      const data = await tryFetch(proxy(fullUrl), authHeaders);
+      const payload = data?.data ?? data;
+      cacheSet(cacheKey, payload);
+      return { ok: true, data: payload, status: 200 };
+    }catch(e){}
   }
+
+  // 4. CORS proxy without auth
+  for(const proxy of CORS_PROXIES){
+    try{
+      const data = await tryFetch(proxy(fullUrl), noAuth);
+      const payload = data?.data ?? data;
+      cacheSet(cacheKey, payload);
+      return { ok: true, data: payload, status: 200 };
+    }catch(e){}
+  }
+
+  console.warn("Mansa API unreachable for", endpoint);
+  return { ok: false, data: null, status: 0 };
 }
 
 async function fetchMansaStocks(){
@@ -453,26 +492,43 @@ async function fetchCoffeePrices(){
 async function fetchMansaMacro(){
   const cached = cacheGet("mansa_macro_ug_v2");
   if(cached) return cached;
-  if(!MANSA_API_KEY) return null;
-  try{
-    const res = await fetch(`${MANSA_BASE}/macro/policy-rates`, {
-      headers: { Authorization: `Bearer ${MANSA_API_KEY}` }
-    });
-    if(!res.ok) throw new Error("macro " + res.status);
-    const body = await res.json();
-    const ug = (body?.data || []).find(c => c.country === "UG");
-    if(ug){
-      const result = {
-        cbr: ug.policy_rate,
-        cbr_period: ug.policy_rate_period,
-        inflation: ug.inflation_yoy,
-        inflation_period: ug.inflation_period,
-        source: ug.source_institution
-      };
-      cacheSet("mansa_macro_ug_v2", result);
-      return result;
-    }
-  }catch(e){ console.warn("Mansa macro fetch failed:", e.message); }
+  const endpoint = "/macro/policy-rates";
+  const fullUrl = MANSA_RAW + endpoint;
+  const authHeaders = MANSA_API_KEY ? { Authorization: `Bearer ${MANSA_API_KEY}` } : {};
+  const noAuth = {};
+
+  const tryParse = async (url, headers) => {
+    const res = await fetch(url, { headers });
+    if(!res.ok) throw new Error(res.status);
+    return await res.json();
+  };
+
+  // 1. Direct with auth, 2. Direct no auth, 3-4. Proxy with/without auth
+  const attempts = [
+    () => tryParse(fullUrl, authHeaders),
+    () => tryParse(fullUrl, noAuth),
+    ...CORS_PROXIES.map(p => () => tryParse(p(fullUrl), authHeaders)),
+    ...CORS_PROXIES.map(p => () => tryParse(p(fullUrl), noAuth))
+  ];
+
+  for(const attempt of attempts){
+    try{
+      const body = await attempt();
+      const ug = (body?.data || []).find(c => c.country === "UG");
+      if(ug){
+        const result = {
+          cbr: ug.policy_rate,
+          cbr_period: ug.policy_rate_period,
+          inflation: ug.inflation_yoy,
+          inflation_period: ug.inflation_period,
+          source: ug.source_institution
+        };
+        cacheSet("mansa_macro_ug_v2", result);
+        return result;
+      }
+    }catch(e){}
+  }
+  console.warn("Mansa macro fetch failed for all attempts");
   return null;
 }
 
