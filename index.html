@@ -243,10 +243,8 @@ tailwind.config = {
    5. Hardcoded mock data — last resort fallback
    ========================================================================== */
 
-const MANSA_API_KEY = CONFIG?.MANSA_API_KEY || "";
-const MANSA_RAW = "https://mansamarkets.com/api/v1";
-const MANSA_PROXY = CONFIG?.MANSA_PROXY_URL || "";
-const ER_API_BASE = "https://open.er-api.com/v6/latest/USD";
+const MANSA_BASE = "https://km-capital.xmusa293.workers.dev/v1/stocks";
+const ER_API_BASE = "https://workers.dev";
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 function cacheGet(key){
@@ -346,15 +344,14 @@ async function fetchForex(){
 }
 
 /* --- Mansa API helpers --- */
-async function tryFetch(url, headers){
-  const res = await fetch(url, { headers });
+async function tryFetch(url){
+  const res = await fetch(url);
   if(!res.ok) throw new Error("fetch " + res.status);
   return await res.json();
 }
 
 function buildMansaUrl(endpoint){
-  if(MANSA_PROXY) return `${MANSA_PROXY}?path=${encodeURIComponent(endpoint)}`;
-  return MANSA_RAW + endpoint;
+  return MANSA_BASE + endpoint;
 }
 
 async function mansaFetch(endpoint){
@@ -362,25 +359,15 @@ async function mansaFetch(endpoint){
   const cached = cacheGet(cacheKey);
   if(cached) return { ok: true, data: cached, status: 200 };
 
-  const url = buildMansaUrl(endpoint);
-  const attempts = MANSA_PROXY
-    ? [() => tryFetch(url, {})]
-    : [
-        () => tryFetch(MANSA_RAW + endpoint, MANSA_API_KEY ? { Authorization: `Bearer ${MANSA_API_KEY}` } : {}),
-        () => tryFetch(MANSA_RAW + endpoint, {})
-      ];
-
-  for(const attempt of attempts){
-    try{
-      const data = await attempt();
-      const payload = data?.data ?? data;
-      cacheSet(cacheKey, payload);
-      return { ok: true, data: payload, status: 200 };
-    }catch(e){}
+  try{
+    const data = await tryFetch(buildMansaUrl(endpoint));
+    const payload = data?.data ?? data;
+    cacheSet(cacheKey, payload);
+    return { ok: true, data: payload, status: 200 };
+  }catch(e){
+    console.warn("Mansa API unreachable for", endpoint);
+    return { ok: false, data: null, status: 0 };
   }
-
-  console.warn("Mansa API unreachable for", endpoint);
-  return { ok: false, data: null, status: 0 };
 }
 
 async function fetchMansaStocks(){
@@ -472,39 +459,21 @@ async function fetchMansaMacro(){
   const cached = cacheGet("mansa_macro_ug_v2");
   if(cached) return cached;
   const endpoint = "/macro/policy-rates";
-  const url = buildMansaUrl(endpoint);
-
-  const tryParse = async (fetchUrl, headers) => {
-    const res = await fetch(fetchUrl, { headers });
-    if(!res.ok) throw new Error(res.status);
-    return await res.json();
-  };
-
-  const attempts = MANSA_PROXY
-    ? [() => tryParse(url, {})]
-    : [
-        () => tryParse(MANSA_RAW + endpoint, MANSA_API_KEY ? { Authorization: `Bearer ${MANSA_API_KEY}` } : {}),
-        () => tryParse(MANSA_RAW + endpoint, {})
-      ];
-
-  for(const attempt of attempts){
-    try{
-      const body = await attempt();
-      const ug = (body?.data || []).find(c => c.country === "UG");
-      if(ug){
-        const result = {
-          cbr: ug.policy_rate,
-          cbr_period: ug.policy_rate_period,
-          inflation: ug.inflation_yoy,
-          inflation_period: ug.inflation_period,
-          source: ug.source_institution
-        };
-        cacheSet("mansa_macro_ug_v2", result);
-        return result;
-      }
-    }catch(e){}
-  }
-  console.warn("Mansa macro fetch failed for all attempts");
+  try{
+    const body = await tryFetch(buildMansaUrl(endpoint));
+    const ug = (body?.data || []).find(c => c.country === "UG");
+    if(ug){
+      const result = {
+        cbr: ug.policy_rate,
+        cbr_period: ug.policy_rate_period,
+        inflation: ug.inflation_yoy,
+        inflation_period: ug.inflation_period,
+        source: ug.source_institution
+      };
+      cacheSet("mansa_macro_ug_v2", result);
+      return result;
+    }
+  }catch(e){ console.warn("Mansa macro fetch failed:", e.message); }
   return null;
 }
 
@@ -1065,7 +1034,7 @@ async function loadChartData(range, override){
   }
 
   // 1. Try Mansa API history
-  if(!override && MANSA_API_KEY){
+  if(!override){
     const res = await fetchMansaStockHistory(ticker);
     if(res.ok && res.data?.points?.length > 1){
       series.setData(mapMansaHistoryPoints(res.data.points));
@@ -1093,7 +1062,7 @@ async function updateChartWithLiveData(stockTicker){
   if(!stockTicker) return false;
 
   // 1. Try Mansa API history
-  if(MANSA_API_KEY){
+  {
     const res = await fetchMansaStockHistory(stockTicker);
     if(res.ok && res.data?.points?.length > 1){
       series.setData(mapMansaHistoryPoints(res.data.points));
