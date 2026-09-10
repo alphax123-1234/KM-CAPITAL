@@ -243,8 +243,7 @@ tailwind.config = {
    5. Hardcoded mock data — last resort fallback
    ========================================================================== */
 
-const MANSA_BASE = "https://km-capital.xmusa293.workers.dev/v1/stocks";
-const ER_API_BASE = "https://workers.dev";
+const MANSA_BASE = "https://workers.dev";
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 function cacheGet(key){
@@ -321,16 +320,16 @@ async function loadJSON(path){
   }
 }
 
-/* --- Exchange Rate API: USD/UGX + USD/KES (free, no key) --- */
+/* --- Exchange Rate: USD/UGX + USD/KES via Cloudflare Worker --- */
 async function fetchForex(){
   const cached = cacheGet("forex_erapi_v1");
   if(cached) return cached;
   try{
-    const res = await fetch(ER_API_BASE);
-    if(!res.ok) throw new Error("er-api " + res.status);
+    const res = await fetch(`${MANSA_BASE}/v1/forex`);
+    if(!res.ok) throw new Error("forex " + res.status);
     const data = await res.json();
-    const ugx = data?.rates?.UGX;
-    const kes = data?.rates?.KES;
+    const ugx = data?.rates?.UGX || data?.UGX;
+    const kes = data?.rates?.KES || data?.KES;
     if(ugx){
       const prev = cacheGet("forex_usdugx_prev_v2") || ugx;
       const change = prev ? ((ugx - prev) / prev) * 100 : 0;
@@ -339,7 +338,7 @@ async function fetchForex(){
       cacheSet("forex_erapi_v1", result);
       return result;
     }
-  }catch(e){ console.warn("er-api forex failed:", e.message); }
+  }catch(e){ console.warn("forex fetch failed:", e.message); }
   return null;
 }
 
@@ -350,48 +349,48 @@ async function tryFetch(url){
   return await res.json();
 }
 
-function buildMansaUrl(endpoint){
-  return MANSA_BASE + endpoint;
+function buildMansaUrl(path){
+  return MANSA_BASE + path;
 }
 
-async function mansaFetch(endpoint){
-  const cacheKey = "mansa_" + endpoint.replace(/[^a-z0-9]/gi,"_");
+async function mansaFetch(path){
+  const cacheKey = "mansa_" + path.replace(/[^a-z0-9]/gi,"_");
   const cached = cacheGet(cacheKey);
   if(cached) return { ok: true, data: cached, status: 200 };
 
   try{
-    const data = await tryFetch(buildMansaUrl(endpoint));
+    const data = await tryFetch(buildMansaUrl(path));
     const payload = data?.data ?? data;
     cacheSet(cacheKey, payload);
     return { ok: true, data: payload, status: 200 };
   }catch(e){
-    console.warn("Mansa API unreachable for", endpoint);
+    console.warn("Mansa API unreachable for", path);
     return { ok: false, data: null, status: 0 };
   }
 }
 
 async function fetchMansaStocks(){
-  return mansaFetch("/markets/exchanges/USE/stocks");
+  return mansaFetch("/v1/stocks");
 }
 
 async function fetchMansaExchange(){
-  return mansaFetch("/markets/exchanges/USE");
+  return mansaFetch("/v1/stocks");
 }
 
 async function fetchMansaMovers(){
-  return mansaFetch("/markets/exchanges/USE/movers?limit=20");
+  return mansaFetch("/v1/stocks");
 }
 
 async function fetchMansaStockHistory(ticker){
-  return mansaFetch(`/markets/exchanges/USE/stocks/${ticker}/history?range=1Y`);
+  return mansaFetch(`/v1/stocks/${ticker}/history?range=1Y`);
 }
 
 async function fetchMansaIndices(){
-  return mansaFetch("/markets/exchanges/USE/indices");
+  return mansaFetch("/v1/stocks");
 }
 
 async function fetchMansaBondYields(){
-  return mansaFetch("/markets/yields/UG/tbills");
+  return mansaFetch("/v1/stocks");
 }
 
 /* --- Yahoo Finance OHLC fallback (free, no key) --- */
@@ -458,9 +457,8 @@ async function fetchCoffeePrices(){
 async function fetchMansaMacro(){
   const cached = cacheGet("mansa_macro_ug_v2");
   if(cached) return cached;
-  const endpoint = "/macro/policy-rates";
   try{
-    const body = await tryFetch(buildMansaUrl(endpoint));
+    const body = await tryFetch(buildMansaUrl("/v1/forex"));
     const ug = (body?.data || []).find(c => c.country === "UG");
     if(ug){
       const result = {
