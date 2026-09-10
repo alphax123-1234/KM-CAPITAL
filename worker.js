@@ -4,149 +4,107 @@
    Deploy: https://dash.cloudflare.com → Workers & Pages → Create Worker
    Env var: MANSA_API_KEY (encrypted) in Settings → Variables & Secrets
    
-   Features:
-   - CORS headers for GitHub Pages / any origin
-   - Auth header injection (key never reaches the browser)
-   - Edge caching (Cloudflare CDN) to save your free-tier budget
-   - Request logging for debugging
-   - Rate-limit aware: caches aggressively to stay under Mansa's 100 req/day
-   - Health check at GET /
+   Routes:
+     /v1/stocks              → Mansa USE equities
+     /v1/stocks/:ticker/history → Mansa stock OHLCV
+     /v1/forex               → er-api.com USD/UGX + USD/KES
+     /health                 → Status check
    ========================================================================== */
 
 const MANSA_ORIGIN = "https://mansamarkets.com";
-const ALLOWED_ORIGINS = [
-  "https://alohax123-1234.github.io",
-  "http://localhost:8888",
-  "http://localhost:5500",
-  "http://127.0.0.1:5500"
-];
+const FOREX_ORIGIN = "https://open.er-api.com/v6/latest/USD";
 
-const CORS_HEADERS = {
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
   "Access-Control-Max-Age": "86400",
   "Access-Control-Expose-Headers": "X-Cache-Status"
 };
 
-function getCorsOrigin(request) {
-  const origin = request.headers.get("Origin") || "";
-  if (ALLOWED_ORIGINS.includes(origin)) return origin;
-  return ALLOWED_ORIGINS[0];
-}
-
-function json(data, status, extra) {
-  return new Response(JSON.stringify(data), {
+function resp(body, status, extra) {
+  return new Response(typeof body === "string" ? body : JSON.stringify(body), {
     status,
-    headers: {
-      "Content-Type": "application/json",
-      ...CORS_HEADERS,
-      "Access-Control-Allow-Origin": "*",
-      ...extra
-    }
+    headers: { "Content-Type": "application/json", ...CORS, ...extra }
   });
 }
 
+async function proxyFetch(url, headers) {
+  const res = await fetch(url, { headers, redirect: "follow" });
+  if (res.status === 308 || res.status === 301 || res.status === 302) {
+    const loc = res.headers.get("Location");
+    if (loc) {
+      const next = loc.startsWith("http") ? loc : MANSA_ORIGIN + loc;
+      return fetch(next, { headers, redirect: "follow" });
+    }
+  }
+  return res;
+}
+
 export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const origin = getCorsOrigin(request);
-
-    /* ---- CORS preflight ---- */
+  async fetch(request, env) {
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          ...CORS_HEADERS,
-          "Access-Control-Allow-Origin": origin
-        }
-      });
+      return new Response(null, { status: 204, headers: CORS });
     }
 
-    /* ---- Health check ---- */
-    if (url.pathname === "/" || url.pathname === "") {
-      return json({
-        status: "ok",
-        service: "AEY Terminal Mansa Proxy",
-        endpoints: [
-          "GET /?path=/markets/exchanges/USE/stocks",
-          "GET /?path=/markets/exchanges/USE",
-          "GET /?path=/markets/exchanges/USE/stocks/{ticker}/history?range=1Y",
-          "GET /?path=/markets/yields/UG/tbills",
-          "GET /?path=/macro/policy-rates",
-          "GET /?path=/markets/exchanges/USE/indices",
-          "GET /health"
-        ]
-      }, 200);
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    /* ---- Health ---- */
+    if (path === "/" || path === "/health") {
+      return resp({ status: "ok", worker: "km-capital", time: new Date().toISOString() }, 200);
     }
 
-    /* ---- Health ping ---- */
-    if (url.pathname === "/health") {
-      return json({ status: "ok", timestamp: new Date().toISOString() }, 200);
-    }
-
-    /* ---- Proxy target ---- */
-    const targetPath = url.searchParams.get("path");
-    if (!targetPath) {
-      return json({
-        error: "Missing ?path= parameter",
-        usage: "/?path=/markets/exchanges/USE/stocks"
-      }, 400);
-    }
-
-    /* ---- Build upstream URL ---- */
-    const targetUrl = MANSA_ORIGIN + targetPath;
-    const upstreamHeaders = {};
-    if (env.MANSA_API_KEY) {
-      upstreamHeaders["Authorization"] = "Bearer " + env.MANSA_API_KEY;
-    }
-
-    /* ---- Fetch from Mansa ---- */
-    let upstreamRes;
-    try {
-      upstreamRes = await fetch(targetUrl, {
-        headers: upstreamHeaders,
-        redirect: "follow",
-        cf: { cacheTtl: 300, cacheEverything: false }
-      });
-    } catch (e) {
-      return json({ error: "Upstream fetch failed", detail: e.message }, 502, {
-        "Access-Control-Allow-Origin": origin
-      });
-    }
-
-    /* ---- Handle 308 redirects (Mansa enforces trailing slash or HTTPS) ---- */
-    if (upstreamRes.status === 308 || upstreamRes.status === 301 || upstreamRes.status === 302) {
-      const location = upstreamRes.headers.get("Location");
-      if (location) {
-        const redirectUrl = location.startsWith("http") ? location : MANSA_ORIGIN + location;
-        try {
-          upstreamRes = await fetch(redirectUrl, {
-            headers: upstreamHeaders,
-            redirect: "follow",
-            cf: { cacheTtl: 300, cacheEverything: false }
-          });
-        } catch (e) {
-          return json({ error: "Redirect fetch failed", detail: e.message }, 502, {
-            "Access-Control-Allow-Origin": origin
-          });
-        }
+    /* ---- Forex: /v1/forex ---- */
+    if (path === "/v1/forex") {
+      try {
+        const res = await fetch(FOREX_ORIGIN);
+        const data = await res.json();
+        return resp(data, 200);
+      } catch (e) {
+        return resp({ error: "Forex fetch failed", detail: e.message }, 502);
       }
     }
 
-    /* ---- Read response ---- */
-    const body = await upstreamRes.text();
-    const contentType = upstreamRes.headers.get("Content-Type") || "application/json";
-    const cacheStatus = upstreamRes.headers.get("CF-Cache-Status") || "MISS";
-
-    return new Response(body, {
-      status: upstreamRes.status,
-      headers: {
-        "Content-Type": contentType,
-        "X-Cache-Status": cacheStatus,
-        "X-Proxy": "aey-mansa-proxy",
-        ...CORS_HEADERS,
-        "Access-Control-Allow-Origin": "*"
+    /* ---- Stocks: /v1/stocks ---- */
+    if (path === "/v1/stocks") {
+      const headers = {};
+      if (env.MANSA_API_KEY) headers["Authorization"] = "Bearer " + env.MANSA_API_KEY;
+      try {
+        const res = await proxyFetch(MANSA_ORIGIN + "/api/v1/markets/exchanges/USE/stocks", headers);
+        const body = await res.text();
+        return new Response(body, {
+          status: res.status,
+          headers: { "Content-Type": "application/json", ...CORS, "X-Upstream": "mansa-stocks" }
+        });
+      } catch (e) {
+        return resp({ error: "Stocks fetch failed", detail: e.message }, 502);
       }
-    });
+    }
+
+    /* ---- Stock History: /v1/stocks/:ticker/history ---- */
+    const historyMatch = path.match(/^\/v1\/stocks\/([^/]+)\/history$/);
+    if (historyMatch) {
+      const ticker = historyMatch[1];
+      const range = url.searchParams.get("range") || "1Y";
+      const headers = {};
+      if (env.MANSA_API_KEY) headers["Authorization"] = "Bearer " + env.MANSA_API_KEY;
+      try {
+        const res = await proxyFetch(
+          MANSA_ORIGIN + `/api/v1/markets/exchanges/USE/stocks/${ticker}/history?range=${range}`,
+          headers
+        );
+        const body = await res.text();
+        return new Response(body, {
+          status: res.status,
+          headers: { "Content-Type": "application/json", ...CORS, "X-Upstream": "mansa-history" }
+        });
+      } catch (e) {
+        return resp({ error: "History fetch failed", detail: e.message }, 502);
+      }
+    }
+
+    /* ---- 404 ---- */
+    return resp({ error: "Not found", path: path, routes: ["/v1/stocks", "/v1/forex", "/v1/stocks/:ticker/history?range=1Y", "/health"] }, 404);
   }
 };
