@@ -94,9 +94,15 @@ tailwind.config = {
     50%{ box-shadow: 0 0 0 6px rgba(38,166,154,0); }
   }
 
+  @keyframes pulse-text{
+    0%,100%{ opacity: 1; }
+    50%{ opacity: 0.4; }
+  }
+
   @media (max-width: 640px) {
     .ticker-track{ animation-duration: 25s; }
-    #chartContainer{ min-height: 280px !important; }
+    #chartWrap{ max-height: 350px !important; }
+    #chartContainer{ min-height: 200px !important; }
   }
 
   @media (max-width: 480px) {
@@ -198,7 +204,9 @@ tailwind.config = {
         </div>
       </div>
 
-      <div id="chartContainer" class="flex-1 min-h-[280px] sm:min-h-[340px] px-1.5 sm:px-2 pb-2 sm:pb-3"></div>
+      <div id="chartWrap" class="relative mx-1.5 sm:mx-2 mb-2 sm:mb-3 rounded-md border border-[var(--line)] overflow-hidden" style="max-height:450px;">
+        <div id="chartContainer" class="w-full h-full" style="min-height:280px;"></div>
+      </div>
 
       <p class="px-3 sm:px-4 pb-2 sm:pb-3 text-[10px] sm:text-[11px] text-[var(--text-dim)]">
         Chart data is synthetically generated around the last known price for demonstration — plug a real feed into <code class="font-mono-data">./data/</code> or the fetch fallback in the script to replace it.
@@ -786,8 +794,7 @@ function renderWatchlist(){
       STATE.selectedTicker = btn.getAttribute("data-ticker");
       renderWatchlist();
       if(STATE.activeCategory === "equities"){
-        const live = await updateChartWithLiveData(STATE.selectedTicker);
-        if(!live) loadChartData(STATE.activeRange);
+        await loadStockChart(STATE.selectedTicker);
       } else {
         updateChartHeader();
         loadChartData(STATE.activeRange);
@@ -933,9 +940,13 @@ function showMacroView(view){
 let chart, series;
 
 function initChart(){
+  const wrap = document.getElementById("chartWrap");
   const container = document.getElementById("chartContainer");
   const isMobile = window.innerWidth < 640;
+  const chartH = Math.min(wrap.clientHeight || 450, 450);
   chart = LightweightCharts.createChart(container, {
+    width: wrap.clientWidth,
+    height: chartH,
     layout: {
       background: { type: "solid", color: "transparent" },
       textColor: "#8b97a8",
@@ -953,7 +964,7 @@ function initChart(){
     },
     rightPriceScale: { borderColor: "#232b36", scaleMargins: { top: 0.1, bottom: 0.1 } },
     timeScale: { borderColor: "#232b36", timeVisible: true, rightOffset: isMobile ? 2 : 5 },
-    autoSize: true
+    autoSize: false
   });
 
   series = chart.addCandlestickSeries({
@@ -971,8 +982,8 @@ function initChart(){
     resizeTimeout = setTimeout(() => {
       const newIsMobile = window.innerWidth < 640;
       chart.applyOptions({
-        width: container.clientWidth,
-        height: container.clientHeight,
+        width: wrap.clientWidth,
+        height: Math.min(wrap.clientHeight || 450, 450),
         layout: { fontSize: newIsMobile ? 10 : 11 },
         timeScale: { rightOffset: newIsMobile ? 2 : 5 }
       });
@@ -1061,53 +1072,84 @@ async function loadChartData(range, override){
 }
 
 async function updateChartWithLiveData(stockTicker){
-  if(!stockTicker) return false;
+  return loadStockChart(stockTicker);
+}
 
-  // 1. Try Mansa API history
-  {
-    const res = await fetchMansaStockHistory(stockTicker);
-    if(res.ok && res.data?.points?.length > 1){
-      series.setData(mapMansaHistoryPoints(res.data.points));
-      chart.timeScale().fitContent();
-      const list = currentList();
-      const stock = list.stocks.find(s => s.ticker === stockTicker);
-      if(stock){
-        document.getElementById("chartTitle").textContent = stock.name;
-        document.getElementById("chartTicker").textContent = stock.ticker;
-        document.getElementById("chartPrice").textContent = stock.priceText || fmtPrice(stock.price);
-        const t = trendGlyph(stock.change_pct);
-        const el = document.getElementById("chartChange");
-        let changeText = `${t.glyph} ${stock.change_pct > 0 ? "+" : ""}${stock.change_pct.toFixed(2)}%`;
-        if(stock.unit) changeText += ` <span class="text-[10px] text-[var(--text-dim)]">${stock.unit}</span>`;
-        el.innerHTML = changeText;
-        el.className = "text-[13px] font-mono-data font-medium " + t.cls;
+/* ==========================================================================
+   LOAD STOCK CHART — fetches OHLCV from worker, pipes into Lightweight Charts
+   ========================================================================== */
+async function loadStockChart(ticker){
+  if(!ticker || !series) return false;
+
+  const list = currentList();
+  const stock = list.stocks.find(s => s.ticker === ticker);
+  if(!stock) return false;
+
+  // Update header immediately
+  document.getElementById("chartTitle").textContent = stock.name;
+  document.getElementById("chartTicker").textContent = stock.ticker;
+  document.getElementById("chartPrice").textContent = stock.priceText || fmtPrice(stock.price);
+  const t = trendGlyph(stock.change_pct);
+  const el = document.getElementById("chartChange");
+  let changeText = `${t.glyph} ${stock.change_pct > 0 ? "+" : ""}${stock.change_pct.toFixed(2)}%`;
+  if(stock.unit) changeText += ` <span class="text-[10px] text-[var(--text-dim)]">${stock.unit}</span>`;
+  el.innerHTML = changeText;
+  el.className = "text-[13px] font-mono-data font-medium " + t.cls;
+
+  // Show loading overlay
+  const loadingHtml = '<div id="chartLoading" class="absolute inset-0 flex items-center justify-center bg-[var(--bg-canvas)]/80 z-10"><span class="text-[12px] text-[var(--text-mid)] font-mono-data animate-pulse">Loading chart...</span></div>';
+  const container = document.getElementById("chartContainer");
+  container.style.position = "relative";
+  container.insertAdjacentHTML("beforeend", loadingHtml);
+
+  // 1. Fetch from Mansa via Cloudflare Worker
+  try{
+    const res = await fetch(`${MANSA_BASE}/v1/stocks/${ticker}/history?range=${STATE.activeRange}`);
+    if(res.ok){
+      const data = await res.json();
+      const points = data?.data?.points || data?.points || data?.history || [];
+      if(Array.isArray(points) && points.length > 1){
+        const candles = points.map(p => ({
+          time: Math.floor(new Date(p.date || p.time || p.timestamp).getTime() / 1000),
+          open: p.open || p.o,
+          high: p.high || p.h,
+          low: p.low || p.l,
+          close: p.close || p.c
+        })).filter(c => c.open != null && c.high != null && c.low != null && c.close != null);
+
+        if(candles.length > 1){
+          series.setData(candles);
+          chart.timeScale().fitContent();
+          removeLoading();
+          return true;
+        }
       }
+    }
+  }catch(e){ console.warn("Mansa history fetch failed:", e.message); }
+
+  // 2. Yahoo Finance fallback
+  try{
+    const yahooCandles = await fetchYahooHistory(ticker, STATE.activeRange);
+    if(yahooCandles && yahooCandles.length > 1){
+      series.setData(yahooCandles);
+      chart.timeScale().fitContent();
+      removeLoading();
       return true;
     }
-    // 2. If Mansa returned 404, try Yahoo Finance fallback
-    if(res.status === 404){
-      const yahooCandles = await fetchYahooHistory(stockTicker, STATE.activeRange);
-      if(yahooCandles){
-        series.setData(yahooCandles);
-        chart.timeScale().fitContent();
-        const list = currentList();
-        const stock = list.stocks.find(s => s.ticker === stockTicker);
-        if(stock){
-          document.getElementById("chartTitle").textContent = stock.name;
-          document.getElementById("chartTicker").textContent = stock.ticker;
-          document.getElementById("chartPrice").textContent = stock.priceText || fmtPrice(stock.price);
-          const t = trendGlyph(stock.change_pct);
-          const el = document.getElementById("chartChange");
-          let changeText = `${t.glyph} ${stock.change_pct > 0 ? "+" : ""}${stock.change_pct.toFixed(2)}%`;
-          if(stock.unit) changeText += ` <span class="text-[10px] text-[var(--text-dim)]">${stock.unit}</span>`;
-          el.innerHTML = changeText;
-          el.className = "text-[13px] font-mono-data font-medium " + t.cls;
-        }
-        return true;
-      }
-    }
-  }
-  return false;
+  }catch(e){}
+
+  // 3. Synthetic fallback
+  const cfg = RANGE_CONFIG[STATE.activeRange] || RANGE_CONFIG["1M"];
+  const candles = generateCandles(ticker, stock.price, stock.base_vol, cfg.points, cfg.stepSeconds);
+  series.setData(candles);
+  chart.timeScale().fitContent();
+  removeLoading();
+  return true;
+}
+
+function removeLoading(){
+  const el = document.getElementById("chartLoading");
+  if(el) el.remove();
 }
 
 function updateChartHeader(){
