@@ -245,10 +245,7 @@ tailwind.config = {
 
 const MANSA_API_KEY = CONFIG?.MANSA_API_KEY || "";
 const MANSA_RAW = "https://mansamarkets.com/api/v1";
-const CORS_PROXIES = [
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`
-];
+const MANSA_PROXY = CONFIG?.MANSA_PROXY_URL || "";
 const ER_API_BASE = "https://open.er-api.com/v6/latest/USD";
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -355,45 +352,27 @@ async function tryFetch(url, headers){
   return await res.json();
 }
 
+function buildMansaUrl(endpoint){
+  if(MANSA_PROXY) return `${MANSA_PROXY}?path=${encodeURIComponent(endpoint)}`;
+  return MANSA_RAW + endpoint;
+}
+
 async function mansaFetch(endpoint){
   const cacheKey = "mansa_" + endpoint.replace(/[^a-z0-9]/gi,"_");
   const cached = cacheGet(cacheKey);
   if(cached) return { ok: true, data: cached, status: 200 };
 
-  const fullUrl = MANSA_RAW + endpoint;
-  const authHeaders = MANSA_API_KEY ? { Authorization: `Bearer ${MANSA_API_KEY}` } : {};
-  const noAuth = {};
+  const url = buildMansaUrl(endpoint);
+  const attempts = MANSA_PROXY
+    ? [() => tryFetch(url, {})]
+    : [
+        () => tryFetch(MANSA_RAW + endpoint, MANSA_API_KEY ? { Authorization: `Bearer ${MANSA_API_KEY}` } : {}),
+        () => tryFetch(MANSA_RAW + endpoint, {})
+      ];
 
-  // 1. Direct (works if Mansa has CORS headers)
-  try{
-    const data = await tryFetch(fullUrl, authHeaders);
-    const payload = data?.data ?? data;
-    cacheSet(cacheKey, payload);
-    return { ok: true, data: payload, status: 200 };
-  }catch(e){}
-
-  // 2. Direct without auth (public data)
-  try{
-    const data = await tryFetch(fullUrl, noAuth);
-    const payload = data?.data ?? data;
-    cacheSet(cacheKey, payload);
-    return { ok: true, data: payload, status: 200 };
-  }catch(e){}
-
-  // 3. CORS proxy with auth
-  for(const proxy of CORS_PROXIES){
+  for(const attempt of attempts){
     try{
-      const data = await tryFetch(proxy(fullUrl), authHeaders);
-      const payload = data?.data ?? data;
-      cacheSet(cacheKey, payload);
-      return { ok: true, data: payload, status: 200 };
-    }catch(e){}
-  }
-
-  // 4. CORS proxy without auth
-  for(const proxy of CORS_PROXIES){
-    try{
-      const data = await tryFetch(proxy(fullUrl), noAuth);
+      const data = await attempt();
       const payload = data?.data ?? data;
       cacheSet(cacheKey, payload);
       return { ok: true, data: payload, status: 200 };
@@ -493,23 +472,20 @@ async function fetchMansaMacro(){
   const cached = cacheGet("mansa_macro_ug_v2");
   if(cached) return cached;
   const endpoint = "/macro/policy-rates";
-  const fullUrl = MANSA_RAW + endpoint;
-  const authHeaders = MANSA_API_KEY ? { Authorization: `Bearer ${MANSA_API_KEY}` } : {};
-  const noAuth = {};
+  const url = buildMansaUrl(endpoint);
 
-  const tryParse = async (url, headers) => {
-    const res = await fetch(url, { headers });
+  const tryParse = async (fetchUrl, headers) => {
+    const res = await fetch(fetchUrl, { headers });
     if(!res.ok) throw new Error(res.status);
     return await res.json();
   };
 
-  // 1. Direct with auth, 2. Direct no auth, 3-4. Proxy with/without auth
-  const attempts = [
-    () => tryParse(fullUrl, authHeaders),
-    () => tryParse(fullUrl, noAuth),
-    ...CORS_PROXIES.map(p => () => tryParse(p(fullUrl), authHeaders)),
-    ...CORS_PROXIES.map(p => () => tryParse(p(fullUrl), noAuth))
-  ];
+  const attempts = MANSA_PROXY
+    ? [() => tryParse(url, {})]
+    : [
+        () => tryParse(MANSA_RAW + endpoint, MANSA_API_KEY ? { Authorization: `Bearer ${MANSA_API_KEY}` } : {}),
+        () => tryParse(MANSA_RAW + endpoint, {})
+      ];
 
   for(const attempt of attempts){
     try{
@@ -868,7 +844,7 @@ function setActiveCategory(cat){
   } else {
     document.getElementById("macroHistoryToggle").classList.add("hidden");
     document.getElementById("macroHistoryToggle").classList.remove("flex");
-    series.applyOptions({ visible: true });
+    if(series) series.applyOptions({ visible: true });
     renderWatchlist();
     updateChartHeader();
     loadChartData(STATE.activeRange);
