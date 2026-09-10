@@ -159,7 +159,7 @@ tailwind.config = {
       <div class="mt-auto px-3 lg:px-4 pt-3 lg:pt-4 border-t border-[var(--line)] mx-1">
         <p class="text-[10px] lg:text-[11px] leading-relaxed text-[var(--text-dim)]">
           USE equities via Mansa API. CBR + inflation via Mansa API. GDP growth via World Bank.
-          Coffee via UCDA. USD/UGX via Frankfurter. Bond yields from BoU.
+          Coffee via UCDA. USD/UGX via er-api.com. Bond yields from BoU.
           Get a free Mansa API key at mansamarkets.com.
         </p>
       </div>
@@ -282,17 +282,20 @@ const MOCK = {
     commodities: [
       { ticker: "COFFEE-ARB", name: "Arabica Coffee (per kg)", price: 11800, change_pct: 0.85, sector: "Agriculture", base_vol: 220 },
       { ticker: "COFFEE-ROB", name: "Robusta Coffee (per kg)", price: 8200, change_pct: -0.42, sector: "Agriculture", base_vol: 180 },
+      { ticker: "FAQ-COFFEE-KASE", name: "FAQ Coffee (kase)", price: 7400, change_pct: 0.32, sector: "Agriculture", base_vol: 150 },
+      { ticker: "ARABIC-BUGISU-AA", name: "Arabic Bugisu AA", price: 14200, change_pct: -0.18, sector: "Agriculture", base_vol: 280 },
       { ticker: "MAIZE", name: "Maize (per kg, wholesale)", price: 1450, change_pct: 1.75, sector: "Agriculture", base_vol: 60 },
       { ticker: "BEANS", name: "Beans (per kg, wholesale)", price: 3600, change_pct: 0.0, sector: "Agriculture", base_vol: 90 }
     ]
   },
   coffee: {
     as_of: "2026-08-28",
-    note: "Local fallback data — Robusta Screen 18, 15, 12.",
+    note: "Local fallback data — Robusta Screen 18, 15, FAQ Coffee (kase), Arabic Bugisu AA.",
     stocks: [
       { ticker: "ROBUSTA-S18", name: "Robusta Screen 18", price: 170.79, unit: "USc/lb", priceText: "170.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
       { ticker: "ROBUSTA-S15", name: "Robusta Screen 15", price: 165.79, unit: "USc/lb", priceText: "165.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
-      { ticker: "ROBUSTA-S12", name: "Robusta Screen 12", price: 162.79, unit: "USc/lb", priceText: "162.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 }
+      { ticker: "FAQ-COFFEE-KASE", name: "FAQ Coffee (kase)", price: 155.50, unit: "USc/lb", priceText: "155.50 USc/lb", sector: "Agriculture", base_vol: 6, change_pct: 0.32 },
+      { ticker: "ARABIC-BUGISU-AA", name: "Arabic Bugisu AA", price: 210.40, unit: "USc/lb", priceText: "210.40 USc/lb", sector: "Agriculture", base_vol: 10, change_pct: -0.18 }
     ]
   }
 };
@@ -390,7 +393,7 @@ async function fetchMansaIndices(){
 }
 
 async function fetchMansaBondYields(){
-  return mansaFetch("/v1/stocks");
+  return mansaFetch("/v1/forex");
 }
 
 /* --- Yahoo Finance OHLC fallback (free, no key) --- */
@@ -443,7 +446,8 @@ function mapMansaHistoryPoints(points){
 const COFFEE_FALLBACK = [
   { ticker: "ROBUSTA-S18", name: "Robusta Screen 18", price: 170.79, unit: "USc/lb", priceText: "170.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
   { ticker: "ROBUSTA-S15", name: "Robusta Screen 15", price: 165.79, unit: "USc/lb", priceText: "165.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
-  { ticker: "ROBUSTA-S12", name: "Robusta Screen 12", price: 162.79, unit: "USc/lb", priceText: "162.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 }
+  { ticker: "FAQ-COFFEE-KASE", name: "FAQ Coffee (kase)", price: 155.50, unit: "USc/lb", priceText: "155.50 USc/lb", sector: "Agriculture", base_vol: 6, change_pct: 0.32 },
+  { ticker: "ARABIC-BUGISU-AA", name: "Arabic Bugisu AA", price: 210.40, unit: "USc/lb", priceText: "210.40 USc/lb", sector: "Agriculture", base_vol: 10, change_pct: -0.18 }
 ];
 
 async function fetchCoffeePrices(){
@@ -689,7 +693,7 @@ function renderTicker(){
 
   // Coffee prices
   if(STATE.categories.coffee && STATE.categories.coffee.stocks){
-    STATE.categories.coffee.stocks.slice(0, 3).forEach(c => {
+    STATE.categories.coffee.stocks.forEach(c => {
       items.push({ label: c.name, value: (c.priceText || c.price.toLocaleString()) + (c.unit ? " " + c.unit : ""), change: c.change_pct });
     });
   }
@@ -1171,36 +1175,83 @@ function tickClock(){
   }
 }
 
-/* --- World Bank GDP live initializer --- */
-async function initWorldBankGDP(){
+/* --- Live data initializer: GDP, bond yields, macro from worker + World Bank --- */
+async function initLiveData(){
+  // Pull live forex + macro from Cloudflare Worker
+  try{
+    const res = await fetch(`${MANSA_BASE}/v1/forex`);
+    if(res.ok){
+      const data = await res.json();
+      if(data?.rates?.UGX){
+        STATE.usdUgx = { value: data.rates.UGX, change: STATE.usdUgx.change, live: true };
+      }
+      if(data?.rates?.KES){
+        STATE.usdKes = { value: data.rates.KES, live: true };
+      }
+      // Extract macro indicators if worker returns them
+      if(data?.cbr != null || data?.inflation != null || data?.bond_10y != null){
+        STATE.macroLive = STATE.macroLive || {};
+        if(data.cbr != null) STATE.macroLive.cbr = data.cbr;
+        if(data.inflation != null) STATE.macroLive.inflation = data.inflation;
+        if(data.bond_10y != null) STATE.macroLive.bond_10y = data.bond_10y;
+      }
+    }
+  }catch(e){ console.warn("Live forex fetch failed:", e.message); }
+
+  // Pull GDP growth from World Bank
   try{
     const res = await fetch("https://api.worldbank.org/v2/country/UGA/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=10&date=2018:2026");
     if(!res.ok) throw new Error("worldbank " + res.status);
     const data = await res.json();
-    if(!Array.isArray(data) || data.length < 2 || !Array.isArray(data[1])) return;
-    const rows = data[1].filter(d => d.value !== null);
-    if(!rows.length) return;
-    const latest = rows[0];
-    const prev = rows[1] || null;
-    const gdpValue = Math.round(latest.value * 100) / 100;
-    const gdpChange = prev ? Math.round((latest.value - prev.value) * 100) / 100 : 0;
-    STATE.macroLive = STATE.macroLive || {};
-    STATE.macroLive.gdp_growth = gdpValue;
-    STATE.macroLive.gdp_period = latest.date;
-    STATE.macroLive.gdp_change = gdpChange;
-    if(STATE.macro && STATE.macro.indicators){
-      const gdp = STATE.macro.indicators.find(i => i.id === "GDP");
-      if(gdp){
-        gdp.value = gdpValue;
-        gdp.period = latest.date;
-        gdp.change = gdpChange;
-      } else {
-        STATE.macro.indicators.push({ id: "GDP", label: "GDP Growth", value: gdpValue, change: gdpChange, unit: "%", period: latest.date });
+    if(Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])){
+      const rows = data[1].filter(d => d.value !== null);
+      if(rows.length){
+        const latest = rows[0];
+        const prev = rows[1] || null;
+        const gdpValue = Math.round(latest.value * 100) / 100;
+        const gdpChange = prev ? Math.round((latest.value - prev.value) * 100) / 100 : 0;
+        STATE.macroLive = STATE.macroLive || {};
+        STATE.macroLive.gdp_growth = gdpValue;
+        STATE.macroLive.gdp_period = latest.date;
+        STATE.macroLive.gdp_change = gdpChange;
       }
     }
-    renderTicker();
-    if(STATE.activeCategory === "macro") renderMacroAsWatchlist();
-  }catch(e){ console.warn("World Bank GDP init failed:", e.message); }
+  }catch(e){ console.warn("World Bank GDP fetch failed:", e.message); }
+
+  // Merge live values into STATE.macro indicators
+  if(STATE.macro && STATE.macro.indicators && STATE.macroLive){
+    const live = STATE.macroLive;
+    const gdp = STATE.macro.indicators.find(i => i.id === "GDP");
+    const bond = STATE.macro.indicators.find(i => i.id === "BOND10Y");
+    const cbr = STATE.macro.indicators.find(i => i.id === "CBR");
+    const cpi = STATE.macro.indicators.find(i => i.id === "CPI");
+
+    if(gdp && live.gdp_growth != null){
+      gdp.value = live.gdp_growth;
+      gdp.period = live.gdp_period || gdp.period;
+      gdp.change = live.gdp_change || gdp.change;
+    } else if(live.gdp_growth != null){
+      STATE.macro.indicators.push({ id: "GDP", label: "GDP Growth", value: live.gdp_growth, change: live.gdp_change || 0, unit: "%", period: live.gdp_period });
+    }
+
+    if(bond && live.bond_10y != null){
+      bond.value = live.bond_10y;
+    }
+
+    if(cbr && live.cbr != null){
+      cbr.value = live.cbr;
+    }
+
+    if(cpi && live.inflation != null){
+      cpi.value = live.inflation;
+    }
+
+    STATE.macro.as_of = new Date().toISOString().slice(0,10);
+    STATE.macro.note = "Live from Mansa API + World Bank.";
+  }
+
+  renderTicker();
+  if(STATE.activeCategory === "macro") renderMacroAsWatchlist();
 }
 
 /* ==========================================================================
@@ -1221,7 +1272,7 @@ document.querySelectorAll(".nav-link, .nav-link-m").forEach(btn => {
     await loadChartData(STATE.activeRange);
     tickClock();
     setInterval(tickClock, 1000);
-    initWorldBankGDP();
+    initLiveData();
   }catch(e){ console.error("Boot failed:", e); }
 })();
 </script>
