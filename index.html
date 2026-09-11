@@ -212,9 +212,8 @@ try{
 
       <div class="mt-auto px-3 lg:px-4 pt-3 lg:pt-4 border-t border-[var(--line)] mx-1">
         <p class="text-[10px] lg:text-[11px] leading-relaxed text-[var(--text-dim)]">
-          USE equities via Mansa API. CBR + inflation via Mansa API. GDP growth via World Bank.
+          USE equities via Mansa API. Macro data from World Bank API.
           Coffee via UCDA. USD/UGX via er-api.com. Bond yields from BoU.
-          Get a free Mansa API key at mansamarkets.com.
         </p>
       </div>
     </aside>
@@ -883,7 +882,7 @@ try{
    ========================================================================== */
 
 const MANSA_BASE = "https://km-capital.xmusa293.workers.dev";
-const CACHE_TTL = 50 * 60 * 1000; // 50 minutes
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes — live network call once per half hour
 
 function _cacheGet(key){
   try { const c = JSON.parse(localStorage.getItem(key)); if(c && (Date.now()-c.ts)<CACHE_TTL) return c.data; } catch(e){}
@@ -1043,17 +1042,15 @@ async function loadJSON(path){
   });
 }
 
-/* --- Exchange Rate: USD/UGX + USD/KES via er-api.com (free, no key) --- */
-const ER_API_BASE = "https://open.er-api.com/v6/latest/USD";
-
+/* --- Exchange Rate: USD/UGX + USD/KES via Cloudflare Worker /v1/forex --- */
 async function fetchForex(){
   return cachedFetch("forex_erapi_v1", async () => {
     try{
-      const res = await fetch(ER_API_BASE);
-      if(!res.ok) throw new Error("er-api " + res.status);
+      const res = await fetch(`${MANSA_BASE}/v1/forex`);
+      if(!res.ok) throw new Error("forex " + res.status);
       const data = await res.json();
-      const ugx = data?.rates?.UGX;
-      const kes = data?.rates?.KES;
+      const ugx = data?.rates?.UGX || data?.UGX;
+      const kes = data?.rates?.KES || data?.KES;
       if(ugx){
         const prev = _cacheGet("forex_usdugx_prev_v2") || ugx;
         const change = prev ? ((ugx - prev) / prev) * 100 : 0;
@@ -1323,6 +1320,8 @@ const BOU_YIELDS = {
 };
 
 async function loadAllData(){
+  const today = new Date().toISOString().slice(0,10);
+
   // Parallel fetch: forex (er-api.com), World Bank macro timeseries, local JSON fallbacks, coffee
   const [macroLocal, stocksLocal, agriLocal, liveRate, coffeeData, wbMacroTimeseries] = await Promise.all([
     loadJSON("./data/macro_indicators.json"),
@@ -1363,20 +1362,30 @@ async function loadAllData(){
     ]
   };
 
-  // Agriculture (no live API — illustrative placeholders)
-  STATE.categories.agri = agriLocal || MOCK.agri;
+  // Agriculture — load from local JSON fallback, merge with cached localStorage overrides
+  const agriBase = agriLocal || MOCK.agri;
+  const cachedAgri = _cacheGet("agri_spot_live") || {};
+  STATE.categories.agri = {
+    ...agriBase,
+    as_of: today,
+    commodities: (agriBase.commodities || []).map(c => ({
+      ...c,
+      ...(cachedAgri[c.ticker] || {})
+    }))
+  };
 
-  // Coffee (live from UCDA scraper)
-  if(coffeeData && coffeeData.length){
-    STATE.categories.coffee = {
-      as_of: new Date().toISOString().slice(0,10),
-      note: "Live from UCDA daily auction (ugandacoffee.go.ug). Updated daily.",
-      stocks: coffeeData
-    };
-    STATE.coffeeLastUpdate = coffeeData[0]?.as_of;
-  } else {
-    STATE.categories.coffee = MOCK.coffee;
-  }
+  // Coffee — merge cached localStorage overrides for Robusta prices
+  const coffeeBase = (coffeeData && coffeeData.length) ? coffeeData : MOCK.coffee.stocks;
+  const cachedCoffee = _cacheGet("agri_spot_live") || {};
+  STATE.categories.coffee = {
+    as_of: today,
+    note: "Source: Uganda Coffee Development Authority (UCDA). Auction prices from NCE dashboard.",
+    stocks: coffeeBase.map(c => ({
+      ...c,
+      ...(cachedCoffee[c.ticker] || {})
+    }))
+  };
+  STATE.coffeeLastUpdate = today;
 
   // USE Equities — Mansa API proxy (strictly for equities)
   const mansaStocksRes = await fetchMansaStocks();
@@ -1502,11 +1511,30 @@ function renderTicker(){
    ========================================================================== */
 const CATEGORY_META = {
   equities: { title: "USE Equities", note: "Live prices from Mansa API (USE). Updated every 30 minutes during market hours." },
-  bonds: { title: "Fixed Income (Bonds)", note: "T-bill/bond yields from BoU auction results. Live from Mansa API if available." },
+  bonds: { title: "Fixed Income (Bonds)", note: "T-bill/bond yields from BoU auction results." },
   agri: { title: "Agriculture Spot Prices", note: "Source: WFP / Uganda Coffee Development Authority (UCDA). Wholesale prices from local market surveys." },
   coffee: { title: "Coffee Auction Prices", note: "Source: Uganda Coffee Development Authority (UCDA). Auction prices from NCE dashboard." },
-  macro: { title: "Macro Economics", note: "CBR + inflation from Mansa API. GDP growth from World Bank." }
+  macro: { title: "Macro Economics", note: "CBR + inflation from World Bank. GDP growth from World Bank." }
 };
+
+/* --- Agriculture price helpers: read/write to localStorage --- */
+function updateAgriPrice(ticker, price, changePct){
+  const cached = _cacheGet("agri_spot_live") || {};
+  cached[ticker] = { price, change_pct: changePct };
+  _cacheSet("agri_spot_live", cached);
+  if(STATE.categories.agri?.commodities){
+    const item = STATE.categories.agri.commodities.find(c => c.ticker === ticker);
+    if(item){
+      item.price = price;
+      item.change_pct = changePct;
+    }
+  }
+}
+
+function getAgriPrice(ticker){
+  const cached = _cacheGet("agri_spot_live") || {};
+  return cached[ticker] || null;
+}
 
 function currentList(){
   const data = STATE.categories[STATE.activeCategory] || STATE.categories.equities;
@@ -1524,11 +1552,15 @@ function renderWatchlist(){
   const data = currentList();
   const meta = CATEGORY_META[STATE.activeCategory] || CATEGORY_META.equities;
   const isMobile = window.innerWidth < 640;
+  const today = new Date().toISOString().slice(0,10);
+  const asOfText = STATE.activeCategory === "agri" || STATE.activeCategory === "coffee"
+    ? today
+    : (data?.as_of || today);
 
   document.getElementById("watchlistTitle").textContent = meta.title;
   document.getElementById("watchlistTitleM").textContent = meta.title;
-  document.getElementById("watchlistAsOf").textContent = "as of " + (data?.as_of || "N/A");
-  document.getElementById("watchlistAsOfM").textContent = "as of " + (data?.as_of || "N/A");
+  document.getElementById("watchlistAsOf").textContent = "as of " + asOfText;
+  document.getElementById("watchlistAsOfM").textContent = "as of " + asOfText;
   document.getElementById("watchlistNote").textContent = meta.note;
 
   if(!data || !data.stocks || !data.stocks.length){
@@ -1887,30 +1919,31 @@ async function loadStockChart(ticker){
   container.style.position = "relative";
   container.insertAdjacentHTML("beforeend", loadingHtml);
 
-  // 1. Fetch from Mansa via Cloudflare Worker
-  try{
-    const res = await fetch(`${MANSA_BASE}/v1/stocks/${ticker}/history?range=${STATE.activeRange}`);
-    if(res.ok){
+  // 1. Fetch from Cloudflare Worker — cached per ticker+range
+  const chartCacheKey = `chart_${ticker}_${STATE.activeRange}`;
+  const candles = await cachedFetch(chartCacheKey, async () => {
+    try{
+      const res = await fetch(`${MANSA_BASE}/v1/stocks/${ticker}/history?range=${STATE.activeRange}`);
+      if(!res.ok) return null;
       const data = await res.json();
       const points = data?.data?.points || data?.points || data?.history || [];
-      if(Array.isArray(points) && points.length > 1){
-        const candles = points.map(p => ({
-          time: Math.floor(new Date(p.date || p.time || p.timestamp).getTime() / 1000),
-          open: p.open || p.o,
-          high: p.high || p.h,
-          low: p.low || p.l,
-          close: p.close || p.c
-        })).filter(c => c.open != null && c.high != null && c.low != null && c.close != null);
+      if(!Array.isArray(points) || points.length <= 1) return null;
+      return points.map(p => ({
+        time: Math.floor(new Date(p.date || p.time || p.timestamp).getTime() / 1000),
+        open: p.open || p.o,
+        high: p.high || p.h,
+        low: p.low || p.l,
+        close: p.close || p.c
+      })).filter(c => c.open != null && c.high != null && c.low != null && c.close != null);
+    }catch(e){ console.warn("Chart history fetch failed:", e.message); return null; }
+  });
 
-        if(candles.length > 1){
-          series.setData(candles);
-          chart.timeScale().fitContent();
-          removeLoading();
-          return true;
-        }
-      }
-    }
-  }catch(e){ console.warn("Mansa history fetch failed:", e.message); }
+  if(candles && candles.length > 1){
+    series.setData(candles);
+    chart.timeScale().fitContent();
+    removeLoading();
+    return true;
+  }
 
   // 2. Yahoo Finance fallback
   try{
@@ -2488,13 +2521,22 @@ let cpiChart = null, policyChart = null;
 
 function initMacroIntelPage(){
   const wb = STATE.wbMacroTimeseries;
-  const latestCpi = wb?.cpi?.values?.length ? wb.cpi.values[wb.cpi.values.length - 1] : 3.8;
-  const latestGdp = wb?.gdp?.values?.length ? wb.gdp.values[wb.gdp.values.length - 1] : 6.2;
+  const indicators = STATE.macro?.indicators || [];
 
-  document.getElementById("macro-kpi-cbr").textContent = "10.00%";
+  const cbrInd = indicators.find(i => i.id === "CBR");
+  const cpiInd = indicators.find(i => i.id === "CPI");
+  const gdpInd = indicators.find(i => i.id === "GDP");
+  const bondInd = indicators.find(i => i.id === "BOND10Y");
+
+  const latestCpi = wb?.cpi?.values?.length ? wb.cpi.values[wb.cpi.values.length - 1] : (cpiInd?.value ?? 3.8);
+  const latestGdp = wb?.gdp?.values?.length ? wb.gdp.values[wb.gdp.values.length - 1] : (gdpInd?.value ?? 6.2);
+  const cbrVal = cbrInd?.value ?? 10.0;
+  const bondVal = bondInd?.value ?? BOU_YIELDS.bond10Y.yield;
+
+  document.getElementById("macro-kpi-cbr").textContent = cbrVal.toFixed(2) + "%";
   document.getElementById("macro-kpi-cpi").textContent = latestCpi.toFixed(1) + "%";
   document.getElementById("macro-kpi-gdp").textContent = latestGdp.toFixed(1) + "%";
-  document.getElementById("macro-kpi-bond").textContent = BOU_YIELDS.bond10Y.yield.toFixed(2) + "%";
+  document.getElementById("macro-kpi-bond").textContent = bondVal.toFixed(2) + "%";
 
   renderCpiChart();
   renderPolicyChart();
