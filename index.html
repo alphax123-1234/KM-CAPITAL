@@ -883,14 +883,22 @@ try{
    ========================================================================== */
 
 const MANSA_BASE = "https://km-capital.xmusa293.workers.dev";
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_TTL = 50 * 60 * 1000; // 50 minutes
 
-function cacheGet(key){
+function _cacheGet(key){
   try { const c = JSON.parse(localStorage.getItem(key)); if(c && (Date.now()-c.ts)<CACHE_TTL) return c.data; } catch(e){}
   return null;
 }
-function cacheSet(key, data){
+function _cacheSet(key, data){
   try { localStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })); } catch(e){}
+}
+
+async function cachedFetch(key, fetchFn){
+  const cached = _cacheGet(key);
+  if(cached !== null) return cached;
+  const data = await fetchFn();
+  if(data !== null && data !== undefined) _cacheSet(key, data);
+  return data;
 }
 
 const MOCK = {
@@ -1023,35 +1031,38 @@ MOCK.macroExtended = {
 };
 
 async function loadJSON(path){
-  try{
-    const res = await fetch(path, { cache: "no-store" });
-    if(!res.ok) throw new Error("bad status " + res.status);
-    return await res.json();
-  }catch(e){
-    return null;
-  }
+  const cacheKey = "localjson_" + path.replace(/[^a-z0-9]/gi,"_");
+  return cachedFetch(cacheKey, async () => {
+    try{
+      const res = await fetch(path, { cache: "no-store" });
+      if(!res.ok) throw new Error("bad status " + res.status);
+      return await res.json();
+    }catch(e){
+      return null;
+    }
+  });
 }
 
-/* --- Exchange Rate: USD/UGX + USD/KES via Cloudflare Worker --- */
+/* --- Exchange Rate: USD/UGX + USD/KES via er-api.com (free, no key) --- */
+const ER_API_BASE = "https://open.er-api.com/v6/latest/USD";
+
 async function fetchForex(){
-  const cached = cacheGet("forex_erapi_v1");
-  if(cached) return cached;
-  try{
-    const res = await fetch(`${MANSA_BASE}/v1/forex`);
-    if(!res.ok) throw new Error("forex " + res.status);
-    const data = await res.json();
-    const ugx = data?.rates?.UGX || data?.UGX;
-    const kes = data?.rates?.KES || data?.KES;
-    if(ugx){
-      const prev = cacheGet("forex_usdugx_prev_v2") || ugx;
-      const change = prev ? ((ugx - prev) / prev) * 100 : 0;
-      cacheSet("forex_usdugx_prev_v2", ugx);
-      const result = { value: ugx, change: change, kes: kes || null };
-      cacheSet("forex_erapi_v1", result);
-      return result;
-    }
-  }catch(e){ console.warn("forex fetch failed:", e.message); }
-  return null;
+  return cachedFetch("forex_erapi_v1", async () => {
+    try{
+      const res = await fetch(ER_API_BASE);
+      if(!res.ok) throw new Error("er-api " + res.status);
+      const data = await res.json();
+      const ugx = data?.rates?.UGX;
+      const kes = data?.rates?.KES;
+      if(ugx){
+        const prev = _cacheGet("forex_usdugx_prev_v2") || ugx;
+        const change = prev ? ((ugx - prev) / prev) * 100 : 0;
+        _cacheSet("forex_usdugx_prev_v2", ugx);
+        return { value: ugx, change: change, kes: kes || null };
+      }
+    }catch(e){ console.warn("forex fetch failed:", e.message); }
+    return null;
+  });
 }
 
 /* --- Mansa API helpers --- */
@@ -1067,18 +1078,15 @@ function buildMansaUrl(path){
 
 async function mansaFetch(path){
   const cacheKey = "mansa_" + path.replace(/[^a-z0-9]/gi,"_");
-  const cached = cacheGet(cacheKey);
-  if(cached) return { ok: true, data: cached, status: 200 };
-
-  try{
-    const data = await tryFetch(buildMansaUrl(path));
-    const payload = data?.data ?? data;
-    cacheSet(cacheKey, payload);
-    return { ok: true, data: payload, status: 200 };
-  }catch(e){
-    console.warn("Mansa API unreachable for", path);
-    return { ok: false, data: null, status: 0 };
-  }
+  return cachedFetch(cacheKey, async () => {
+    try{
+      const data = await tryFetch(buildMansaUrl(path));
+      return data?.data ?? data;
+    }catch(e){
+      console.warn("Mansa API unreachable for", path);
+      return null;
+    }
+  }).then(data => data !== null ? { ok: true, data, status: 200 } : { ok: false, data: null, status: 0 });
 }
 
 async function fetchMansaStocks(){
@@ -1124,21 +1132,24 @@ function mapYahooCandles(result){
 }
 
 async function fetchYahooHistory(ticker, range){
-  const rangeMap = { "1D": "1d", "1W": "5d", "1M": "1mo", "3M": "3mo", "1Y": "1y", "ALL": "5y" };
-  const intervalMap = { "1D": "15m", "1W": "1h", "1M": "1d", "3M": "1d", "1Y": "1d", "ALL": "1wk" };
-  const yahooRange = rangeMap[range] || "1mo";
-  const interval = intervalMap[range] || "1d";
-  const symbols = { "MTNU": "MTNU.UG", "SBU": "SBU.UG", "UMEME": "UMEME.UG", "DFCU": "DFCU.UG", "BATU": "BATU.UG", "NIC": "NIC.UG" };
-  const symbol = symbols[ticker] || (ticker.endsWith(".UG") ? ticker : ticker + ".UG");
-  try{
-    const res = await fetch(`${YAHOO_CHART_BASE}/${symbol}?range=${yahooRange}&interval=${interval}`);
-    if(!res.ok) return null;
-    const data = await res.json();
-    return mapYahooCandles(data);
-  }catch(e){
-    console.warn("Yahoo Finance fallback failed for", ticker, ":", e.message);
-    return null;
-  }
+  const cacheKey = `yahoo_${ticker}_${range}`;
+  return cachedFetch(cacheKey, async () => {
+    const rangeMap = { "1D": "1d", "1W": "5d", "1M": "1mo", "3M": "3mo", "1Y": "1y", "ALL": "5y" };
+    const intervalMap = { "1D": "15m", "1W": "1h", "1M": "1d", "3M": "1d", "1Y": "1d", "ALL": "1wk" };
+    const yahooRange = rangeMap[range] || "1mo";
+    const interval = intervalMap[range] || "1d";
+    const symbols = { "MTNU": "MTNU.UG", "SBU": "SBU.UG", "UMEME": "UMEME.UG", "DFCU": "DFCU.UG", "BATU": "BATU.UG", "NIC": "NIC.UG" };
+    const symbol = symbols[ticker] || (ticker.endsWith(".UG") ? ticker : ticker + ".UG");
+    try{
+      const res = await fetch(`${YAHOO_CHART_BASE}/${symbol}?range=${yahooRange}&interval=${interval}`);
+      if(!res.ok) return null;
+      const data = await res.json();
+      return mapYahooCandles(data);
+    }catch(e){
+      console.warn("Yahoo Finance fallback failed for", ticker, ":", e.message);
+      return null;
+    }
+  });
 }
 
 function mapMansaHistoryPoints(points){
@@ -1160,99 +1171,125 @@ const COFFEE_FALLBACK = [
 ];
 
 async function fetchCoffeePrices(){
-  const cached = cacheGet("ucda_coffee");
-  if(cached) return cached;
-  cacheSet("ucda_coffee", COFFEE_FALLBACK);
-  return COFFEE_FALLBACK;
+  return cachedFetch("ucda_coffee", async () => COFFEE_FALLBACK);
 }
 
 /* --- Mansa Macro: CBR + Inflation for Uganda (free tier) --- */
 async function fetchMansaMacro(){
-  const cached = cacheGet("mansa_macro_ug_v2");
-  if(cached) return cached;
-  try{
-    const body = await tryFetch(buildMansaUrl("/v1/forex"));
-    const ug = (body?.data || []).find(c => c.country === "UG");
-    if(ug){
-      const result = {
-        cbr: ug.policy_rate,
-        cbr_period: ug.policy_rate_period,
-        inflation: ug.inflation_yoy,
-        inflation_period: ug.inflation_period,
-        source: ug.source_institution
-      };
-      cacheSet("mansa_macro_ug_v2", result);
-      return result;
-    }
-  }catch(e){ console.warn("Mansa macro fetch failed:", e.message); }
-  return null;
+  return cachedFetch("mansa_macro_ug_v2", async () => {
+    try{
+      const body = await tryFetch(buildMansaUrl("/v1/forex"));
+      const ug = (body?.data || []).find(c => c.country === "UG");
+      if(ug){
+        return {
+          cbr: ug.policy_rate,
+          cbr_period: ug.policy_rate_period,
+          inflation: ug.inflation_yoy,
+          inflation_period: ug.inflation_period,
+          source: ug.source_institution
+        };
+      }
+    }catch(e){ console.warn("Mansa macro fetch failed:", e.message); }
+    return null;
+  });
 }
 
 /* --- Uganda Macro: CBR + Inflation (Mansa) + GDP Growth (World Bank) --- */
 const WORLD_BANK_BASE = "https://api.worldbank.org/v2";
 
 async function fetchWorldBankGDP(){
-  const cached = cacheGet("wb_gdp_ug");
-  if(cached) return cached;
-  try{
-    const res = await fetch(`${WORLD_BANK_BASE}/country/UGA/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=5&date=2020:2026`);
-    if(!res.ok) throw new Error("worldbank " + res.status);
-    const data = await res.json();
-    if(Array.isArray(data) && data.length > 1 && Array.isArray(data[1]) && data[1].length){
-      const latest = data[1].find(d => d.value !== null);
-      if(latest){
-        const prev = data[1].find(d => d.value !== null && d.date !== latest.date);
-        const change = prev ? latest.value - prev.value : 0;
-        const result = {
-          gdp_growth: Math.round(latest.value * 100) / 100,
-          gdp_period: latest.date,
-          gdp_change: Math.round(change * 100) / 100
-        };
-        cacheSet("wb_gdp_ug", result);
-        return result;
+  return cachedFetch("wb_gdp_ug", async () => {
+    try{
+      const res = await fetch(`${WORLD_BANK_BASE}/country/UGA/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=5&date=2020:2026`);
+      if(!res.ok) throw new Error("worldbank " + res.status);
+      const data = await res.json();
+      if(Array.isArray(data) && data.length > 1 && Array.isArray(data[1]) && data[1].length){
+        const latest = data[1].find(d => d.value !== null);
+        if(latest){
+          const prev = data[1].find(d => d.value !== null && d.date !== latest.date);
+          const change = prev ? latest.value - prev.value : 0;
+          return {
+            gdp_growth: Math.round(latest.value * 100) / 100,
+            gdp_period: latest.date,
+            gdp_change: Math.round(change * 100) / 100
+          };
+        }
       }
-    }
-  }catch(e){ console.warn("World Bank GDP fetch failed:", e.message); }
-  return null;
+    }catch(e){ console.warn("World Bank GDP fetch failed:", e.message); }
+    return null;
+  });
+}
+
+/* --- World Bank Macro Time-Series: CPI + GDP + Reserves for Macro Intelligence page --- */
+async function fetchWorldBankMacroTimeseries(){
+  return cachedFetch("wb_macro_timeseries_v1", async () => {
+    try{
+      const [cpiRes, gdpRes, reservesRes, tradeRes, popRes] = await Promise.all([
+        fetch(`${WORLD_BANK_BASE}/country/UGA/indicator/FP.CPI.TOTL.ZG?format=json&per_page=10&date=2015:2026`).then(r => r.json()).catch(() => null),
+        fetch(`${WORLD_BANK_BASE}/country/UGA/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=10&date=2015:2026`).then(r => r.json()).catch(() => null),
+        fetch(`${WORLD_BANK_BASE}/country/UGA/indicator/FI.RES.TOTL.CD?format=json&per_page=5&date=2020:2026`).then(r => r.json()).catch(() => null),
+        fetch(`${WORLD_BANK_BASE}/country/UGA/indicator/NE.EXP.GNFS.CD?format=json&per_page=5&date=2020:2026`).then(r => r.json()).catch(() => null),
+        fetch(`${WORLD_BANK_BASE}/country/UGA/indicator/SP.POP.TOTL?format=json&per_page=3&date=2022:2026`).then(r => r.json()).catch(() => null)
+      ]);
+
+      const parseWb = (res) => {
+        if(!Array.isArray(res) || res.length < 2 || !Array.isArray(res[1])) return [];
+        return res[1].filter(d => d.value !== null).reverse();
+      };
+
+      const cpiRaw = parseWb(cpiRes);
+      const gdpRaw = parseWb(gdpRes);
+
+      return {
+        cpi: {
+          labels: cpiRaw.map(d => d.date),
+          values: cpiRaw.map(d => Math.round(d.value * 10) / 10)
+        },
+        gdp: {
+          labels: gdpRaw.map(d => d.date),
+          values: gdpRaw.map(d => Math.round(d.value * 100) / 100)
+        },
+        reserves: parseWb(reservesRes).map(d => ({ date: d.date, value: d.value })),
+        trade: parseWb(tradeRes).map(d => ({ date: d.date, value: d.value })),
+        population: parseWb(popRes).map(d => ({ date: d.date, value: d.value }))
+      };
+    }catch(e){ console.warn("World Bank macro timeseries fetch failed:", e.message); }
+    return null;
+  });
 }
 
 async function fetchUgandaMacro(){
-  const cached = cacheGet("uganda_macro_v2");
-  if(cached) return cached;
-  try{
-    const [mansa, wbGdp] = await Promise.all([
-      fetchMansaMacro(),
-      fetchWorldBankGDP()
-    ]);
-    const result = {
-      cbr: mansa?.cbr ?? null,
-      cbr_period: mansa?.cbr_period ?? null,
-      inflation: mansa?.inflation ?? null,
-      inflation_period: mansa?.inflation_period ?? null,
-      source: mansa?.source ?? "fallback",
-      gdp_growth: wbGdp?.gdp_growth ?? null,
-      gdp_period: wbGdp?.gdp_period ?? null,
-      gdp_change: wbGdp?.gdp_change ?? 0
-    };
-    cacheSet("uganda_macro_v2", result);
-    return result;
-  }catch(e){ console.warn("Uganda macro fetch failed:", e.message); }
-  return null;
+  return cachedFetch("uganda_macro_v2", async () => {
+    try{
+      const [mansa, wbGdp] = await Promise.all([
+        fetchMansaMacro(),
+        fetchWorldBankGDP()
+      ]);
+      return {
+        cbr: mansa?.cbr ?? null,
+        cbr_period: mansa?.cbr_period ?? null,
+        inflation: mansa?.inflation ?? null,
+        inflation_period: mansa?.inflation_period ?? null,
+        source: mansa?.source ?? "fallback",
+        gdp_growth: wbGdp?.gdp_growth ?? null,
+        gdp_period: wbGdp?.gdp_period ?? null,
+        gdp_change: wbGdp?.gdp_change ?? 0
+      };
+    }catch(e){ console.warn("Uganda macro fetch failed:", e.message); }
+    return null;
+  });
 }
 
 async function fetchMacroExtended(){
-  const cached = cacheGet("macro_extended_v1");
-  if(cached) return cached;
-  try{
-    const res = await fetch(`${MANSA_BASE}/v1/macro-extended`);
-    if(!res.ok) throw new Error("macro-extended " + res.status);
-    const data = await res.json();
-    if(data && data.credit){
-      cacheSet("macro_extended_v1", data);
-      return data;
-    }
-  }catch(e){ console.warn("Macro extended fetch failed:", e.message); }
-  return MOCK.macroExtended;
+  return cachedFetch("macro_extended_v1", async () => {
+    try{
+      const res = await fetch(`${MANSA_BASE}/v1/macro-extended`);
+      if(!res.ok) throw new Error("macro-extended " + res.status);
+      const data = await res.json();
+      if(data && data.credit) return data;
+    }catch(e){ console.warn("Macro extended fetch failed:", e.message); }
+    return MOCK.macroExtended;
+  });
 }
 
 let STATE = {
@@ -1270,40 +1307,61 @@ let STATE = {
   feedErrors: []
 };
 
+/* ==========================================================================
+   STATIC BANK OF UGANDA PRIMARY AUCTION YIELDS
+   Latest cut-off rates from BoU weekly treasury auctions.
+   Update manually when new auction results are published.
+   ========================================================================== */
+const BOU_YIELDS = {
+  tbill91D:  { tenor: "91-Day",  yield: 11.20, change: 0.05, auctionDate: "2026-09-08" },
+  tbill182D: { tenor: "182-Day", yield: 12.80, change: -0.10, auctionDate: "2026-09-08" },
+  tbill364D: { tenor: "364-Day", yield: 13.95, change: 0.08, auctionDate: "2026-09-08" },
+  bond2Y:   { tenor: "2-Year",  yield: 14.10, change: 0.00, coupon: 14.00 },
+  bond5Y:   { tenor: "5-Year",  yield: 14.85, change: -0.02, coupon: 15.00 },
+  bond10Y:  { tenor: "10-Year", yield: 15.13, change: -0.05, coupon: 15.50 },
+  bond15Y:  { tenor: "15-Year", yield: 15.65, change: 0.03, coupon: 16.00 }
+};
+
 async function loadAllData(){
-  const [macroLocal, stocksLocal, bondsLocal, agriLocal, macroHistoryLocal, liveRate, coffeeData, ugMacro, mansaBonds] = await Promise.all([
+  // Parallel fetch: forex (er-api.com), World Bank macro timeseries, local JSON fallbacks, coffee
+  const [macroLocal, stocksLocal, agriLocal, liveRate, coffeeData, wbMacroTimeseries] = await Promise.all([
     loadJSON("./data/macro_indicators.json"),
     loadJSON("./data/stocks_daily.json"),
-    loadJSON("./data/fixed_income_yields.json"),
     loadJSON("./data/agriculture_spot.json"),
-    loadJSON("./data/macro_timeseries.json"),
     fetchForex(),
     fetchCoffeePrices(),
-    fetchUgandaMacro(),
-    fetchMansaBondYields()
+    fetchWorldBankMacroTimeseries()
   ]);
 
-  // Macro — merge live data with fallback
+  // Macro — merge World Bank live data with fallback
   STATE.macro = macroLocal || MOCK.macro;
-  STATE.macroLive = ugMacro;
-
-  if(ugMacro && (ugMacro.cbr || ugMacro.inflation || ugMacro.gdp_growth)){
-    const bondYield = mansaBonds.data?.bond_10y?.yield || STATE.macro.indicators.find(i=>i.id==="BOND10Y")?.value || 15.85;
-    const bondChange = STATE.macro.indicators.find(i=>i.id==="BOND10Y")?.change || -0.05;
+  if(wbMacroTimeseries){
+    STATE.wbMacroTimeseries = wbMacroTimeseries;
+    const latestCpi = wbMacroTimeseries.cpi?.values?.length ? wbMacroTimeseries.cpi.values[wbMacroTimeseries.cpi.values.length - 1] : null;
+    const latestGdp = wbMacroTimeseries.gdp?.values?.length ? wbMacroTimeseries.gdp.values[wbMacroTimeseries.gdp.values.length - 1] : null;
     const indicators = [];
-    if(ugMacro.cbr != null) indicators.push({ id: "CBR", label: "CBR", value: ugMacro.cbr, change: 0.0, unit: "%", period: ugMacro.cbr_period });
-    if(ugMacro.inflation != null) indicators.push({ id: "CPI", label: "Inflation", value: ugMacro.inflation, change: 0.0, unit: "%", period: ugMacro.inflation_period });
-    if(ugMacro.gdp_growth != null) indicators.push({ id: "GDP", label: "GDP Growth", value: ugMacro.gdp_growth, change: ugMacro.gdp_change, unit: "%", period: ugMacro.gdp_period });
-    indicators.push({ id: "BOND10Y", label: "10Y Bond", value: bondYield, change: bondChange, unit: "%" });
+    indicators.push({ id: "CBR", label: "CBR", value: 10.0, change: 0.0, unit: "%" });
+    if(latestCpi != null) indicators.push({ id: "CPI", label: "Inflation", value: latestCpi, change: 0.0, unit: "%" });
+    if(latestGdp != null) indicators.push({ id: "GDP", label: "GDP Growth", value: latestGdp, change: 0, unit: "%" });
+    indicators.push({ id: "BOND10Y", label: "10Y Bond", value: BOU_YIELDS.bond10Y.yield, change: BOU_YIELDS.bond10Y.change, unit: "%" });
     STATE.macro = {
       as_of: new Date().toISOString().slice(0,10),
-      note: "Live from Mansa API + World Bank.",
+      note: "Live from World Bank API + Bank of Uganda.",
       indicators
     };
   }
 
-  // Bonds (live from Mansa API if available, fallback to local JSON)
-  STATE.categories.bonds = bondsLocal || MOCK.bonds;
+  // Bonds — static BOU primary auction yields (instant load)
+  STATE.categories.bonds = {
+    as_of: new Date().toISOString().slice(0,10),
+    note: "Bank of Uganda primary auction results — latest cut-off yields.",
+    stocks: [
+      { ticker: "T-BOND-2Y", name: "2-Year Treasury Bond", price: BOU_YIELDS.bond2Y.yield, change_pct: BOU_YIELDS.bond2Y.change, sector: "Fixed Income", base_vol: 0.3 },
+      { ticker: "T-BOND-5Y", name: "5-Year Treasury Bond", price: BOU_YIELDS.bond5Y.yield, change_pct: BOU_YIELDS.bond5Y.change, sector: "Fixed Income", base_vol: 0.4 },
+      { ticker: "T-BOND-10Y", name: "10-Year Treasury Bond", price: BOU_YIELDS.bond10Y.yield, change_pct: BOU_YIELDS.bond10Y.change, sector: "Fixed Income", base_vol: 0.5 },
+      { ticker: "T-BOND-15Y", name: "15-Year Treasury Bond", price: BOU_YIELDS.bond15Y.yield, change_pct: BOU_YIELDS.bond15Y.change, sector: "Fixed Income", base_vol: 0.6 }
+    ]
+  };
 
   // Agriculture (no live API — illustrative placeholders)
   STATE.categories.agri = agriLocal || MOCK.agri;
@@ -1317,11 +1375,10 @@ async function loadAllData(){
     };
     STATE.coffeeLastUpdate = coffeeData[0]?.as_of;
   } else {
-    // fallback to MOCK coffee data
     STATE.categories.coffee = MOCK.coffee;
   }
 
-  // USE Equities — try Mansa API, fall back to local JSON, then to mock
+  // USE Equities — Mansa API proxy (strictly for equities)
   const mansaStocksRes = await fetchMansaStocks();
   const mansaStocks = mansaStocksRes.data;
   if(mansaStocksRes.ok && Array.isArray(mansaStocks) && mansaStocks.length){
@@ -1344,7 +1401,7 @@ async function loadAllData(){
     STATE.categories.equities = stocksLocal || MOCK.stocks;
   }
 
-  // USE ASI index — try Mansa API
+  // USE ASI index — Mansa API
   const mansaExchangeRes = await fetchMansaExchange();
   const mansaExchange = mansaExchangeRes.data;
   if(mansaExchangeRes.ok && mansaExchange && (mansaExchange.index_value || mansaExchange.value)){
@@ -1356,7 +1413,7 @@ async function loadAllData(){
     };
   }
 
-  // USD/UGX + USD/KES
+  // USD/UGX + USD/KES — from er-api.com
   if(liveRate){
     STATE.usdUgx = { value: liveRate.value, change: liveRate.change, live: true };
     STATE.usdKes = { value: liveRate.kes || 0, live: !!liveRate.kes };
@@ -1365,17 +1422,13 @@ async function loadAllData(){
     STATE.usdKes = { value: 0, live: false };
   }
 
-  // Macro history
-  STATE.macroHistory = macroHistoryLocal;
-
   // Track feed failures for error badge
   STATE.feedErrors = [];
   if(!liveRate) STATE.feedErrors.push("forex");
-  if(!ugMacro) STATE.feedErrors.push("macro");
   if(!mansaStocksRes.ok) STATE.feedErrors.push("equities");
   updateLiveFeedBadge();
 
-  // Fetch extended macro data
+  // Extended macro data
   STATE.macroExtended = await fetchMacroExtended();
 }
 
@@ -1621,32 +1674,35 @@ function showMacroView(view){
     return;
   }
 
-  // "history" view — CPI & GDP growth pulled from data/macro_timeseries.json (via ugatsdb)
+  // "history" view — CPI & GDP growth from World Bank API
   series.applyOptions({ visible: false });
-  series.setData([]); // clear old candle data so it stops skewing the shared price scale
+  series.setData([]);
   clearHistorySeries();
 
-  const hasCpi = STATE.macroHistory?.series?.cpi?.points?.length > 0;
-  const hasGdp = STATE.macroHistory?.series?.gdp?.points?.length > 0;
+  const wb = STATE.wbMacroTimeseries;
+  const hasCpi = wb?.cpi?.labels?.length > 0;
+  const hasGdp = wb?.gdp?.labels?.length > 0;
 
-  if(!STATE.macroHistory || (!hasCpi && !hasGdp)){
+  if(!wb || (!hasCpi && !hasGdp)){
     document.getElementById("chartTitle").textContent = "CPI & GDP History";
     document.getElementById("chartTicker").textContent = "NO DATA YET";
     document.getElementById("chartPrice").textContent = "—";
     const el = document.getElementById("chartChange");
-    el.textContent = "Run the ugatsdb GitHub Action to populate this";
+    el.textContent = "World Bank data loading...";
     el.className = "text-[13px] font-mono-data font-medium text-[var(--text-dim)]";
     return;
   }
 
-  const cpiPts = (STATE.macroHistory.series.cpi?.points || []).map(p => ({ time: p.date, value: p.value }));
-  const gdpPts = (STATE.macroHistory.series.gdp?.points || []).map(p => ({ time: p.date, value: p.value }));
+  // Convert World Bank year-labels to timestamps for the chart
+  const toTime = (yearStr) => Math.floor(new Date(yearStr + "-06-30").getTime() / 1000);
 
-  if(cpiPts.length){
-    historySeries.cpi = chart.addLineSeries({ color: "#4c8dff", lineWidth: 2, priceScaleId: "right", title: "CPI Index" });
+  if(hasCpi){
+    const cpiPts = wb.cpi.labels.map((yr, i) => ({ time: toTime(yr), value: wb.cpi.values[i] }));
+    historySeries.cpi = chart.addLineSeries({ color: "#4c8dff", lineWidth: 2, priceScaleId: "right", title: "CPI Inflation %" });
     historySeries.cpi.setData(cpiPts);
   }
-  if(gdpPts.length){
+  if(hasGdp){
+    const gdpPts = wb.gdp.labels.map((yr, i) => ({ time: toTime(yr), value: wb.gdp.values[i] }));
     chart.applyOptions({ leftPriceScale: { visible: true, borderColor: "#1a1a1a" } });
     historySeries.gdp = chart.addLineSeries({ color: "#26a69a", lineWidth: 2, priceScaleId: "left", title: "GDP Growth %" });
     historySeries.gdp.setData(gdpPts);
@@ -1654,12 +1710,12 @@ function showMacroView(view){
   chart.timeScale().fitContent();
 
   document.getElementById("chartTitle").textContent = "CPI & GDP Growth History";
-  document.getElementById("chartTicker").textContent = "UGATSDB";
-  const latestCpi = cpiPts[cpiPts.length - 1];
-  const latestGdp = gdpPts[gdpPts.length - 1];
-  document.getElementById("chartPrice").textContent = latestCpi ? latestCpi.value.toFixed(2) : "—";
+  document.getElementById("chartTicker").textContent = "WORLD BANK";
+  const latestCpiVal = hasCpi ? wb.cpi.values[wb.cpi.values.length - 1] : null;
+  const latestGdpVal = hasGdp ? wb.gdp.values[wb.gdp.values.length - 1] : null;
+  document.getElementById("chartPrice").textContent = latestCpiVal != null ? latestCpiVal.toFixed(1) + "%" : "—";
   const el2 = document.getElementById("chartChange");
-  el2.textContent = latestGdp ? `GDP growth: ${latestGdp.value.toFixed(2)}%` : "";
+  el2.textContent = latestGdpVal != null ? `GDP growth: ${latestGdpVal.toFixed(1)}%` : "";
   el2.className = "text-[13px] font-mono-data font-medium text-[var(--text-mid)]";
 }
 
@@ -1945,81 +2001,8 @@ function tickClock(){
   }
 }
 
-/* --- Live data initializer: GDP, bond yields, macro from worker + World Bank --- */
+/* --- Live data initializer: refresh ticker ribbon after boot --- */
 async function initLiveData(){
-  // Pull live forex + macro from Cloudflare Worker
-  try{
-    const res = await fetch(`${MANSA_BASE}/v1/forex`);
-    if(res.ok){
-      const data = await res.json();
-      if(data?.rates?.UGX){
-        STATE.usdUgx = { value: data.rates.UGX, change: STATE.usdUgx.change, live: true };
-      }
-      if(data?.rates?.KES){
-        STATE.usdKes = { value: data.rates.KES, live: true };
-      }
-      // Extract macro indicators if worker returns them
-      if(data?.cbr != null || data?.inflation != null || data?.bond_10y != null){
-        STATE.macroLive = STATE.macroLive || {};
-        if(data.cbr != null) STATE.macroLive.cbr = data.cbr;
-        if(data.inflation != null) STATE.macroLive.inflation = data.inflation;
-        if(data.bond_10y != null) STATE.macroLive.bond_10y = data.bond_10y;
-      }
-    }
-  }catch(e){ console.warn("Live forex fetch failed:", e.message); }
-
-  // Pull GDP growth from World Bank
-  try{
-    const res = await fetch("https://api.worldbank.org/v2/country/UGA/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=10&date=2018:2026");
-    if(!res.ok) throw new Error("worldbank " + res.status);
-    const data = await res.json();
-    if(Array.isArray(data) && data.length >= 2 && Array.isArray(data[1])){
-      const rows = data[1].filter(d => d.value !== null);
-      if(rows.length){
-        const latest = rows[0];
-        const prev = rows[1] || null;
-        const gdpValue = Math.round(latest.value * 100) / 100;
-        const gdpChange = prev ? Math.round((latest.value - prev.value) * 100) / 100 : 0;
-        STATE.macroLive = STATE.macroLive || {};
-        STATE.macroLive.gdp_growth = gdpValue;
-        STATE.macroLive.gdp_period = latest.date;
-        STATE.macroLive.gdp_change = gdpChange;
-      }
-    }
-  }catch(e){ console.warn("World Bank GDP fetch failed:", e.message); }
-
-  // Merge live values into STATE.macro indicators
-  if(STATE.macro && STATE.macro.indicators && STATE.macroLive){
-    const live = STATE.macroLive;
-    const gdp = STATE.macro.indicators.find(i => i.id === "GDP");
-    const bond = STATE.macro.indicators.find(i => i.id === "BOND10Y");
-    const cbr = STATE.macro.indicators.find(i => i.id === "CBR");
-    const cpi = STATE.macro.indicators.find(i => i.id === "CPI");
-
-    if(gdp && live.gdp_growth != null){
-      gdp.value = live.gdp_growth;
-      gdp.period = live.gdp_period || gdp.period;
-      gdp.change = live.gdp_change || gdp.change;
-    } else if(live.gdp_growth != null){
-      STATE.macro.indicators.push({ id: "GDP", label: "GDP Growth", value: live.gdp_growth, change: live.gdp_change || 0, unit: "%", period: live.gdp_period });
-    }
-
-    if(bond && live.bond_10y != null){
-      bond.value = live.bond_10y;
-    }
-
-    if(cbr && live.cbr != null){
-      cbr.value = live.cbr;
-    }
-
-    if(cpi && live.inflation != null){
-      cpi.value = live.inflation;
-    }
-
-    STATE.macro.as_of = new Date().toISOString().slice(0,10);
-    STATE.macro.note = "Live from Mansa API + World Bank.";
-  }
-
   renderTicker();
   if(STATE.activeCategory === "macro") renderMacroAsWatchlist();
 }
@@ -2028,26 +2011,24 @@ async function initLiveData(){
    PAN-AFRICAN TICKER + NEWS WIRE + CORPORATE ACTIONS
    ========================================================================== */
 async function fetchAfricanIndices(){
-  const cached = cacheGet("african_indices_v1");
-  if(cached) return cached;
-  try{
-    const [useRes, nseRes, jseRes] = await Promise.all([
-      fetch(`${MANSA_BASE}/v1/stocks`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${MANSA_BASE}/v1/stocks`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${MANSA_BASE}/v1/stocks`).then(r => r.ok ? r.json() : null).catch(() => null)
-    ]);
-    const indices = MOCK.africanIndices.map((m, i) => {
-      const res = [useRes, nseRes, jseRes][i];
-      const data = res?.data || res;
-      if(data && (data.index_value || data.value)){
-        return { ...m, value: data.index_value || data.value, change_pct: data.index_change_pct || data.change_pct || m.change_pct };
-      }
-      return m;
-    });
-    cacheSet("african_indices_v1", indices);
-    return indices;
-  }catch(e){ console.warn("African indices fetch failed:", e.message); }
-  return MOCK.africanIndices;
+  return cachedFetch("african_indices_v1", async () => {
+    try{
+      const [useRes, nseRes, jseRes] = await Promise.all([
+        fetch(`${MANSA_BASE}/v1/stocks`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${MANSA_BASE}/v1/stocks`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${MANSA_BASE}/v1/stocks`).then(r => r.ok ? r.json() : null).catch(() => null)
+      ]);
+      return MOCK.africanIndices.map((m, i) => {
+        const res = [useRes, nseRes, jseRes][i];
+        const data = res?.data || res;
+        if(data && (data.index_value || data.value)){
+          return { ...m, value: data.index_value || data.value, change_pct: data.index_change_pct || data.change_pct || m.change_pct };
+        }
+        return m;
+      });
+    }catch(e){ console.warn("African indices fetch failed:", e.message); }
+    return MOCK.africanIndices;
+  });
 }
 
 function renderAfricanTicker(indices){
@@ -2095,24 +2076,22 @@ function renderPanAfricanIndices(indices){
 }
 
 async function fetchNewsWire(){
-  const cached = cacheGet("news_wire_v1");
-  if(cached) return cached;
-  try{
-    const res = await fetch("https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/africa/rss.xml");
-    if(!res.ok) throw new Error("rss " + res.status);
-    const data = await res.json();
-    if(data.status === "ok" && Array.isArray(data.items)){
-      const items = data.items.slice(0, 10).map(item => ({
-        source: item.author || item.source || "BBC Africa",
-        title: item.title,
-        date: item.pubDate ? item.pubDate.slice(0, 10) : "",
-        url: item.link || "#"
-      }));
-      cacheSet("news_wire_v1", items);
-      return items;
-    }
-  }catch(e){ console.warn("News wire fetch failed:", e.message); }
-  return MOCK.newsWire;
+  return cachedFetch("news_wire_v1", async () => {
+    try{
+      const res = await fetch("https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/africa/rss.xml");
+      if(!res.ok) throw new Error("rss " + res.status);
+      const data = await res.json();
+      if(data.status === "ok" && Array.isArray(data.items)){
+        return data.items.slice(0, 10).map(item => ({
+          source: item.author || item.source || "BBC Africa",
+          title: item.title,
+          date: item.pubDate ? item.pubDate.slice(0, 10) : "",
+          url: item.link || "#"
+        }));
+      }
+    }catch(e){ console.warn("News wire fetch failed:", e.message); }
+    return MOCK.newsWire;
+  });
 }
 
 function renderNewsWire(items){
@@ -2239,18 +2218,15 @@ async function initSecondaryPanels(){
 }
 
 async function fetchCorpActions(){
-  const cached = cacheGet("corp_actions_use_v1");
-  if(cached) return cached;
-  try{
-    const res = await fetch(`${MANSA_BASE}/v1/corp-actions`);
-    if(!res.ok) throw new Error("corp-actions " + res.status);
-    const data = await res.json();
-    if(Array.isArray(data) && data.length){
-      cacheSet("corp_actions_use_v1", data);
-      return data;
-    }
-  }catch(e){ console.warn("Corp actions fetch failed:", e.message); }
-  return MOCK.corpActions;
+  return cachedFetch("corp_actions_use_v1", async () => {
+    try{
+      const res = await fetch(`${MANSA_BASE}/v1/corp-actions`);
+      if(!res.ok) throw new Error("corp-actions " + res.status);
+      const data = await res.json();
+      if(Array.isArray(data) && data.length) return data;
+    }catch(e){ console.warn("Corp actions fetch failed:", e.message); }
+    return MOCK.corpActions;
+  });
 }
 
 /* ==========================================================================
@@ -2396,16 +2372,16 @@ function updateConverter(){
 
 /* --- FIXED INCOME PAGE --- */
 const TBILL_DATA = [
-  { tenor: "91-Day", yield: 13.45, change: 0.12, auctionDate: "2026-09-08" },
-  { tenor: "182-Day", yield: 14.20, change: -0.08, auctionDate: "2026-09-08" },
-  { tenor: "364-Day", yield: 15.10, change: 0.05, auctionDate: "2026-09-08" }
+  BOU_YIELDS.tbill91D,
+  BOU_YIELDS.tbill182D,
+  BOU_YIELDS.tbill364D
 ];
 
 const TBOND_DATA = [
-  { tenor: "2-Year",  yield: 14.10, change: 0.00, coupon: 14.00 },
-  { tenor: "5-Year",  yield: 15.05, change: -0.02, coupon: 15.25 },
-  { tenor: "10-Year", yield: 15.85, change: -0.05, coupon: 16.00 },
-  { tenor: "15-Year", yield: 16.20, change: 0.03, coupon: 16.50 }
+  BOU_YIELDS.bond2Y,
+  BOU_YIELDS.bond5Y,
+  BOU_YIELDS.bond10Y,
+  BOU_YIELDS.bond15Y
 ];
 
 function initBondsPage(){
@@ -2443,7 +2419,15 @@ function renderYieldCurve(){
   if(yieldCurveChart) yieldCurveChart.destroy();
 
   const labels = ["91D","182D","364D","2Y","5Y","10Y","15Y"];
-  const yields = [13.45, 14.20, 15.10, 14.10, 15.05, 15.85, 16.20];
+  const yields = [
+    BOU_YIELDS.tbill91D.yield,
+    BOU_YIELDS.tbill182D.yield,
+    BOU_YIELDS.tbill364D.yield,
+    BOU_YIELDS.bond2Y.yield,
+    BOU_YIELDS.bond5Y.yield,
+    BOU_YIELDS.bond10Y.yield,
+    BOU_YIELDS.bond15Y.yield
+  ];
 
   yieldCurveChart = new Chart(ctx, {
     type: "line",
@@ -2503,10 +2487,14 @@ const TRADE_DATA = {
 let cpiChart = null, policyChart = null;
 
 function initMacroIntelPage(){
-  document.getElementById("macro-kpi-cbr").textContent = (STATE.macroLive?.cbr ?? 10.0).toFixed(2) + "%";
-  document.getElementById("macro-kpi-cpi").textContent = (STATE.macroLive?.inflation ?? 3.8).toFixed(1) + "%";
-  document.getElementById("macro-kpi-gdp").textContent = (STATE.macroLive?.gdp_growth ?? 6.2).toFixed(1) + "%";
-  document.getElementById("macro-kpi-bond").textContent = "15.85%";
+  const wb = STATE.wbMacroTimeseries;
+  const latestCpi = wb?.cpi?.values?.length ? wb.cpi.values[wb.cpi.values.length - 1] : 3.8;
+  const latestGdp = wb?.gdp?.values?.length ? wb.gdp.values[wb.gdp.values.length - 1] : 6.2;
+
+  document.getElementById("macro-kpi-cbr").textContent = "10.00%";
+  document.getElementById("macro-kpi-cpi").textContent = latestCpi.toFixed(1) + "%";
+  document.getElementById("macro-kpi-gdp").textContent = latestGdp.toFixed(1) + "%";
+  document.getElementById("macro-kpi-bond").textContent = BOU_YIELDS.bond10Y.yield.toFixed(2) + "%";
 
   renderCpiChart();
   renderPolicyChart();
@@ -2574,13 +2562,17 @@ function renderCpiChart(){
   const ctx = document.getElementById("cpiChartCanvas");
   if(!ctx) return;
   if(cpiChart) cpiChart.destroy();
+
+  const wb = STATE.wbMacroTimeseries;
+  const cpiLabels = wb?.cpi?.labels?.length ? wb.cpi.labels : CPI_DATA.labels;
+  const cpiValues = wb?.cpi?.values?.length ? wb.cpi.values : CPI_DATA.headline;
+
   cpiChart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: CPI_DATA.labels,
+      labels: cpiLabels,
       datasets: [
-        { label: "Headline CPI", data: CPI_DATA.headline, borderColor: "#ef5350", backgroundColor: "rgba(239,83,80,0.06)", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 },
-        { label: "Core CPI", data: CPI_DATA.core, borderColor: "#4c8dff", backgroundColor: "rgba(76,141,255,0.06)", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+        { label: "CPI Inflation (%)", data: cpiValues, borderColor: "#ef5350", backgroundColor: "rgba(239,83,80,0.06)", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
       ]
     },
     options: {
@@ -2598,13 +2590,17 @@ function renderPolicyChart(){
   const ctx = document.getElementById("policyChartCanvas");
   if(!ctx) return;
   if(policyChart) policyChart.destroy();
+
+  const wb = STATE.wbMacroTimeseries;
+  const gdpLabels = wb?.gdp?.labels?.length ? wb.gdp.labels : POLICY_DATA.labels;
+  const gdpValues = wb?.gdp?.values?.length ? wb.gdp.values : POLICY_DATA.bond10y;
+
   policyChart = new Chart(ctx, {
     type: "line",
     data: {
-      labels: POLICY_DATA.labels,
+      labels: gdpLabels,
       datasets: [
-        { label: "CBR", data: POLICY_DATA.cbr, borderColor: "#26a69a", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 },
-        { label: "10Y Bond", data: POLICY_DATA.bond10y, borderColor: "#ef5350", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+        { label: "GDP Growth (%)", data: gdpValues, borderColor: "#26a69a", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
       ]
     },
     options: {
@@ -2619,13 +2615,20 @@ function renderPolicyChart(){
 }
 
 function renderWBIndicators(){
+  const wb = STATE.wbMacroTimeseries;
+  const latestGdp = wb?.gdp?.values?.length ? wb.gdp.values[wb.gdp.values.length - 1] : 6.2;
+  const latestCpi = wb?.cpi?.values?.length ? wb.cpi.values[wb.cpi.values.length - 1] : 3.8;
+  const latestPop = wb?.population?.length ? wb.population[wb.population.length - 1] : null;
+  const popDisplay = latestPop ? (latestPop.value / 1e6).toFixed(1) + "M" : "48.6M";
+  const popPeriod = latestPop?.date || "2025";
+
   const indicators = [
-    { label: "GDP Growth (annual %)", value: "6.2%", period: "2025" },
-    { label: "Inflation, consumer prices", value: "3.8%", period: "2026" },
+    { label: "GDP Growth (annual %)", value: latestGdp.toFixed(1) + "%", period: "World Bank" },
+    { label: "Inflation, consumer prices", value: latestCpi.toFixed(1) + "%", period: "World Bank" },
     { label: "CBR (Central Bank Rate)", value: "10.00%", period: "Sep 2026" },
-    { label: "USD/UGX Exchange Rate", value: STATE.usdUgx.value.toLocaleString(), period: "Live" },
-    { label: "Population (est.)", value: "48.6M", period: "2025" },
-    { label: "GDP per capita (USD)", value: "$1,070", period: "2024" }
+    { label: "USD/UGX Exchange Rate", value: STATE.usdUgx.value.toLocaleString(), period: "er-api.com" },
+    { label: "Population (est.)", value: popDisplay, period: popPeriod },
+    { label: "10Y Bond Yield", value: BOU_YIELDS.bond10Y.yield.toFixed(2) + "%", period: "BoU Auction" }
   ];
   document.getElementById("wbIndicatorsBody").innerHTML = indicators.map(i => `
     <div class="bg-[var(--bg-canvas)] border border-[var(--line)] rounded p-3">

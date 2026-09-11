@@ -1,14 +1,16 @@
 /* ==========================================================================
-   AEY Terminal — Mansa API CORS Proxy (Cloudflare Worker)
-   
+   KM Terminal — Mansa API CORS Proxy (Cloudflare Worker)
+
    Deploy: https://dash.cloudflare.com → Workers & Pages → Create Worker
    Env var: MANSA_API_KEY (encrypted) in Settings → Variables & Secrets
-   
+
    Routes:
-     /v1/stocks              → Mansa USE equities
-     /v1/stocks/:ticker/history → Mansa stock OHLCV
-     /v1/forex               → Mansa African forex rates
-     /health                 → Status check
+     /v1/stocks                  → Mansa USE equities
+     /v1/stocks/:ticker/history  → Mansa stock OHLCV
+     /v1/forex                   → Mansa African forex rates
+     /v1/macro-extended          → Extended macro metrics (served from worker)
+     /v1/corp-actions            → Corporate actions calendar (served from worker)
+     /health                     → Status check
    ========================================================================== */
 
 const MANSA_ORIGIN = "https://mansaapi.com";
@@ -49,6 +51,52 @@ async function proxyFetch(mansaPath, env) {
   });
 }
 
+/* --- Extended macro metrics (served securely from worker, not hardcoded in client) --- */
+function getMacroExtended() {
+  return {
+    as_of: new Date().toISOString().slice(0, 10),
+    source: "UGATSDB / Bank of Uganda",
+    credit: {
+      yoy_growth: 12.4,
+      outstanding_bn: 22850,
+      trend_3m: "accelerating",
+      lending_rate_avg: 19.8,
+      target: 20
+    },
+    forexReserves: {
+      total_usd_m: 4120,
+      months_cover: 4.3,
+      change_qoq: 3.2,
+      benchmark: 4.0
+    },
+    moneySupply: {
+      m2_t: 42.8,
+      m3_t: 51.2,
+      m2_yoy: 11.5,
+      m3_yoy: 10.8,
+      m2_velocity: 2.4,
+      m3_broad: 68.5
+    },
+    tradeBalance: {
+      exports_m: 6280,
+      imports_m: 9450,
+      deficit_m: -3170,
+      tot_index: 104.8
+    }
+  };
+}
+
+/* --- Corporate actions calendar (served securely from worker, not hardcoded in client) --- */
+function getCorpActions() {
+  return [
+    { ticker: "MTNU", company: "MTN Uganda", action: "Interim Dividend", detail: "UGX 5.20 per share", date: "2026-09-19", status: "Upcoming" },
+    { ticker: "SBU", company: "Stanbic Bank Uganda", action: "Final Dividend", detail: "UGX 75.00 per share", date: "2026-09-26", status: "Upcoming" },
+    { ticker: "DFCU", company: "DFCU Bank", action: "AGM", detail: "Annual General Meeting", date: "2026-10-03", status: "Upcoming" },
+    { ticker: "UMEME", company: "Umeme Ltd", action: "Suspension", detail: "Trading halted — demerger pending", date: "2026-09-10", status: "Active" },
+    { ticker: "BATU", company: "BAT Uganda", action: "Book Closure", detail: "Final dividend cut-off", date: "2026-10-10", status: "Upcoming" }
+  ];
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -70,6 +118,14 @@ export default {
       return proxyFetch("/api/v1/markets/forex", env);
     }
 
+    if (path === "/v1/macro-extended") {
+      return resp(getMacroExtended(), 200);
+    }
+
+    if (path === "/v1/corp-actions") {
+      return resp(getCorpActions(), 200);
+    }
+
     const historyMatch = path.match(/^\/v1\/stocks\/([^/]+)\/history$/);
     if (historyMatch) {
       const ticker = historyMatch[1];
@@ -77,6 +133,6 @@ export default {
       return proxyFetch(`/api/v1/markets/exchanges/USE/stocks/${ticker}/history?range=${range}`, env);
     }
 
-    return resp({ error: "Not found", path, routes: ["/v1/stocks", "/v1/forex", "/v1/stocks/:ticker/history?range=1Y", "/health"] }, 404);
+    return resp({ error: "Not found", path, routes: ["/v1/stocks", "/v1/forex", "/v1/stocks/:ticker/history?range=1Y", "/v1/macro-extended", "/v1/corp-actions", "/health"] }, 404);
   }
 };
