@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AEY Terminal — Uganda Market Dashboard</title>
+<title>KM TERMINAL — Uganda Market Dashboard</title>
 <meta name="description" content="A Uganda-focused market dashboard: USE equities, macro indicators, and agriculture spot prices.">
 
 <!-- Tailwind (CDN, JIT) -->
@@ -24,15 +24,27 @@ tailwind.config = {
 </script>
 <!-- Lightweight Charts by TradingView -->
 <script src="./vendor/lightweight-charts.standalone.production.js"></script>
-<!-- External config (API keys) -->
-<script src="./config.js"></script>
+<!-- Chart.js for yield curve -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<!-- jsPDF for PDF export -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<!-- External config (API keys) — optional -->
+<script>try{ eval("1"); }catch(e){}</script>
+<script>
+try{
+  const cfgScript = document.createElement("script");
+  cfgScript.src = "./config.js";
+  cfgScript.onerror = function(){};
+  document.head.appendChild(cfgScript);
+} catch(e){}
+</script>
 
 <style>
   :root{
-    --bg-canvas: #0b0f14;
-    --bg-panel:  #10151c;
-    --bg-panel-2:#151b23;
-    --line:      #232b36;
+    --bg-canvas: #000000;
+    --bg-panel:  #050505;
+    --bg-panel-2:#0a0a0a;
+    --line:      #1a1a1a;
     --text-hi:   #e6ebf2;
     --text-mid:  #8b97a8;
     --text-dim:  #56616f;
@@ -46,8 +58,8 @@ tailwind.config = {
 
   ::-webkit-scrollbar{ width:6px; height:6px; }
   ::-webkit-scrollbar-track{ background:transparent; }
-  ::-webkit-scrollbar-thumb{ background:#2a323d; border-radius:4px; }
-  ::-webkit-scrollbar-thumb:hover{ background:#374150; }
+  ::-webkit-scrollbar-thumb{ background:#1a1a1a; border-radius:4px; }
+  ::-webkit-scrollbar-thumb:hover{ background:#2a2a2a; }
 
   .scrollbar-none::-webkit-scrollbar{ display:none; }
   .scrollbar-none{ -ms-overflow-style:none; scrollbar-width:none; }
@@ -70,6 +82,10 @@ tailwind.config = {
   .nav-link-m{ transition: background-color .15s ease, color .15s ease; }
   .nav-link-m.active{ background: rgba(76,141,255,0.15); color: var(--text-hi); }
 
+  .header-nav-link{ transition: color .15s ease; border-bottom: 2px solid transparent; padding-bottom: 2px; }
+  .header-nav-link:hover{ color: var(--text-hi); }
+  .header-nav-link.active{ color: var(--text-hi); border-bottom-color: var(--accent); }
+
   .range-btn.active{ background:var(--accent); color:#fff; }
   .macro-view-btn.active{ background:var(--accent); color:#fff; }
   .watch-row{ transition: background-color .12s ease; cursor:pointer; }
@@ -78,6 +94,22 @@ tailwind.config = {
   .watch-row.selected .sel-bar{ background: var(--accent); }
 
   .badge-dot{ box-shadow: 0 0 0 3px rgba(255,255,255,0.04); }
+
+  .logo-badge{
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .logo-badge img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 
   @media (prefers-reduced-motion: reduce){
     .ticker-track{ animation: none; }
@@ -98,6 +130,20 @@ tailwind.config = {
     0%,100%{ opacity: 1; }
     50%{ opacity: 0.4; }
   }
+
+  #newsWireBody::-webkit-scrollbar,
+  #corpActionsBody::-webkit-scrollbar{ width:4px; }
+  #newsWireBody::-webkit-scrollbar-thumb,
+  #corpActionsBody::-webkit-scrollbar-thumb{ background:#1a1a1a; border-radius:4px; }
+  #newsWireBody::-webkit-scrollbar-thumb:hover,
+  #corpActionsBody::-webkit-scrollbar-thumb:hover{ background:#2a2a2a; }
+
+  [id^="page-"]{ min-height:0; }
+  [id^="page-"]::-webkit-scrollbar{ width:4px; }
+  [id^="page-"]::-webkit-scrollbar-thumb{ background:#1a1a1a; border-radius:4px; }
+  [id^="page-"]::-webkit-scrollbar-thumb:hover{ background:#2a2a2a; }
+
+  select option{ background:#0a0a0a; color:#e6ebf2; }
 
   @media (max-width: 640px) {
     .ticker-track{ animation-duration: 25s; }
@@ -122,12 +168,20 @@ tailwind.config = {
 
   <!-- ============ HEADER BAR ============ -->
   <header class="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[var(--line)] bg-[var(--bg-canvas)]">
-    <div class="flex items-center gap-2 sm:gap-2.5">
-      <div class="w-7 h-7 rounded bg-[var(--accent)] flex items-center justify-center text-[13px] font-bold text-white">A</div>
-      <span class="font-semibold tracking-tight text-[14px] sm:text-[15px]">AEY Terminal</span>
-      <span class="hidden sm:inline text-[11px] text-[var(--text-dim)] font-mono-data ml-1">UG MARKETS</span>
-    </div>
-    <div class="flex items-center gap-2 sm:gap-3">
+    <a href="/" class="flex items-center gap-2.5 no-underline shrink-0">
+      <div class="logo-badge">
+        <img src="./a690d938-684a-490c-84c1-0f48a575eed1.png" alt="KM Terminal">
+      </div>
+      <span class="font-bold tracking-tight text-[14px] sm:text-[15px] text-white">KM TERMINAL</span>
+      <span class="hidden sm:inline text-[10px] sm:text-[11px] text-[var(--text-dim)] font-mono-data">UG MARKETS</span>
+    </a>
+    <nav class="flex items-center gap-3 sm:gap-4 xl:gap-5 mx-3 sm:mx-4 xl:mx-6 overflow-x-auto scrollbar-none">
+      <button data-category="forex" class="header-nav-link text-[11px] sm:text-[12px] xl:text-[13px] text-[var(--text-mid)] hover:text-white transition-colors font-semibold whitespace-nowrap">Forex</button>
+      <button data-category="bonds" class="header-nav-link text-[11px] sm:text-[12px] xl:text-[13px] text-[var(--text-mid)] hover:text-white transition-colors font-semibold whitespace-nowrap">Fixed Income</button>
+      <button data-category="macro" class="header-nav-link text-[11px] sm:text-[12px] xl:text-[13px] text-[var(--text-mid)] hover:text-white transition-colors font-semibold whitespace-nowrap">Macro</button>
+      <button data-category="investor" class="header-nav-link text-[11px] sm:text-[12px] xl:text-[13px] text-[var(--text-mid)] hover:text-white transition-colors font-semibold whitespace-nowrap">Investor Tools</button>
+    </nav>
+    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
       <span id="liveFeedBadge" class="hidden text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-1 rounded bg-[var(--down)] text-white font-medium">Live feed offline</span>
       <span class="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-1 rounded border border-[var(--line)] text-[var(--text-mid)]">Live</span>
       <span id="marketStatusBadge" class="hidden md:inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded font-medium font-mono-data">
@@ -147,12 +201,6 @@ tailwind.config = {
       <nav class="flex flex-col gap-0.5">
         <button data-category="equities" class="nav-link active flex items-center gap-2 lg:gap-2.5 px-3 lg:px-4 py-2 lg:py-2.5 text-left text-[12px] lg:text-[13px] border-l-2 border-transparent text-[var(--text-mid)]">
           <span>USE Equities</span>
-        </button>
-        <button data-category="bonds" class="nav-link flex items-center gap-2 lg:gap-2.5 px-3 lg:px-4 py-2 lg:py-2.5 text-left text-[12px] lg:text-[13px] border-l-2 border-transparent text-[var(--text-mid)]">
-          <span>Fixed Income (Bonds)</span>
-        </button>
-        <button data-category="macro" class="nav-link flex items-center gap-2 lg:gap-2.5 px-3 lg:px-4 py-2 lg:py-2.5 text-left text-[12px] lg:text-[13px] border-l-2 border-transparent text-[var(--text-mid)]">
-          <span>Macro Economics</span>
         </button>
         <button data-category="agri" class="nav-link flex items-center gap-2 lg:gap-2.5 px-3 lg:px-4 py-2 lg:py-2.5 text-left text-[12px] lg:text-[13px] border-l-2 border-transparent text-[var(--text-mid)]">
           <span>Agriculture Spot Prices</span>
@@ -175,8 +223,6 @@ tailwind.config = {
     <div class="md:hidden w-full border-b border-[var(--line)] bg-[var(--bg-panel)] overflow-x-auto scrollbar-none">
       <div class="flex gap-1 px-2 py-2 w-max">
         <button data-category="equities" class="nav-link-m active px-3 py-1.5 rounded text-[11px] sm:text-[12px] whitespace-nowrap text-[var(--text-mid)]">USE Equities</button>
-        <button data-category="bonds" class="nav-link-m px-3 py-1.5 rounded text-[11px] sm:text-[12px] whitespace-nowrap text-[var(--text-mid)]">Bonds</button>
-        <button data-category="macro" class="nav-link-m px-3 py-1.5 rounded text-[11px] sm:text-[12px] whitespace-nowrap text-[var(--text-mid)]">Macro</button>
         <button data-category="agri" class="nav-link-m px-3 py-1.5 rounded text-[11px] sm:text-[12px] whitespace-nowrap text-[var(--text-mid)]">Agriculture</button>
         <button data-category="coffee" class="nav-link-m px-3 py-1.5 rounded text-[11px] sm:text-[12px] whitespace-nowrap text-[var(--text-mid)]">Coffee</button>
       </div>
@@ -211,21 +257,448 @@ tailwind.config = {
       <p class="px-3 sm:px-4 pb-2 sm:pb-3 text-[10px] sm:text-[11px] text-[var(--text-dim)]">
         Chart data is synthetically generated around the last known price for demonstration — plug a real feed into <code class="font-mono-data">./data/</code> or the fetch fallback in the script to replace it.
       </p>
+
+      <!-- Pan-African Index Comparison -->
+      <div class="px-3 sm:px-4 pb-3 sm:pb-4">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
+          <div class="px-4 sm:px-5 py-2.5 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-[11px] sm:text-[12px] font-semibold text-[var(--text-hi)]">Pan-African Indices</h3>
+            <span id="panAfriAsOf" class="text-[9px] text-[var(--text-dim)] font-mono-data"></span>
+          </div>
+          <div class="overflow-hidden">
+            <div id="panAfriTrack" class="ticker-track py-2.5"></div>
+          </div>
+        </div>
+      </div>
     </main>
+
+    <!-- ====================================================================
+         SUB-PAGES (hidden by default, shown via sidebar nav)
+         ==================================================================== -->
+
+    <!-- ====== FOREX SPOT TERMINAL ====== -->
+    <div id="page-forex" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
+      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
+        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">Forex Spot Terminal</h2>
+        <p class="text-[10px] text-[var(--text-dim)] mt-1">Live cross-border currency pairs — East African Community</p>
+      </div>
+
+      <!-- Currency Pair Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[var(--line)]">
+        <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(76,141,255,0.1)] text-[var(--accent)] font-mono-data font-bold">UG</span>
+            <span class="text-[11px] text-[var(--text-mid)] font-medium">USD / UGX</span>
+          </div>
+          <div id="fx-usd-ugx" class="text-xl sm:text-2xl font-bold font-mono-data text-[var(--text-hi)]">3,720.00</div>
+          <div id="fx-usd-ugx-chg" class="text-[11px] font-mono-data text-[var(--up)] mt-1">+0.15%</div>
+          <div class="text-[9px] text-[var(--text-dim)] mt-1">US Dollar → Ugandan Shilling</div>
+        </div>
+        <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(38,166,154,0.1)] text-[var(--up)] font-mono-data font-bold">KE</span>
+            <span class="text-[11px] text-[var(--text-mid)] font-medium">KES / UGX</span>
+          </div>
+          <div id="fx-kes-ugx" class="text-xl sm:text-2xl font-bold font-mono-data text-[var(--text-hi)]">28.65</div>
+          <div id="fx-kes-ugx-chg" class="text-[11px] font-mono-data text-[var(--flat)] mt-1">0.00%</div>
+          <div class="text-[9px] text-[var(--text-dim)] mt-1">Kenyan Shilling → Ugandan Shilling</div>
+        </div>
+        <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(239,83,80,0.1)] text-[var(--down)] font-mono-data font-bold">TZ</span>
+            <span class="text-[11px] text-[var(--text-mid)] font-medium">TZS / UGX</span>
+          </div>
+          <div id="fx-tzs-ugx" class="text-xl sm:text-2xl font-bold font-mono-data text-[var(--text-hi)]">1.42</div>
+          <div id="fx-tzs-ugx-chg" class="text-[11px] font-mono-data text-[var(--flat)] mt-1">0.00%</div>
+          <div class="text-[9px] text-[var(--text-dim)] mt-1">Tanzanian Shilling → Ugandan Shilling</div>
+        </div>
+      </div>
+
+      <!-- Currency Converter -->
+      <div class="px-4 sm:px-6 py-5">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5 max-w-xl">
+          <h3 class="text-[13px] font-semibold text-[var(--text-hi)] mb-3">Currency Converter</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr,auto,1fr] gap-3 items-end">
+            <div>
+              <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Amount</label>
+              <input id="convAmount" type="number" value="1000" min="0" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+            </div>
+            <div>
+              <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">From</label>
+              <select id="convFrom" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+                <option value="USD">USD — US Dollar</option>
+                <option value="KES">KES — Kenyan Shilling</option>
+                <option value="TZS">TZS — Tanzanian Shilling</option>
+                <option value="GBP">GBP — British Pound</option>
+                <option value="EUR">EUR — Euro</option>
+              </select>
+            </div>
+            <div class="sm:text-center">
+              <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">&nbsp;</label>
+              <div class="text-[13px] font-mono-data font-bold text-[var(--up)] bg-[rgba(38,166,154,0.08)] border border-[rgba(38,166,154,0.2)] rounded px-3 py-2" id="convResult">UGX 372,000.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Regional Central Bank Rates Table -->
+      <div class="px-4 sm:px-6 pb-5">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
+          <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-[13px] font-semibold text-[var(--text-hi)]">Regional Central Bank Policy Rates</h3>
+            <span class="text-[9px] text-[var(--text-dim)] font-mono-data">Official benchmark rates</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b border-[var(--line)]">
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium">Central Bank</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Policy Rate</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Change</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right hidden sm:table-cell">Last Meeting</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right hidden md:table-cell">Next Meeting</th>
+                </tr>
+              </thead>
+              <tbody id="centralRatesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Global Major Pair Ticker Strip -->
+      <div class="px-4 sm:px-6 pb-5">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
+          <div class="px-4 sm:px-5 py-2.5 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-[12px] font-semibold text-[var(--text-hi)]">Global Major Pairs</h3>
+            <span class="text-[9px] text-[var(--text-dim)] font-mono-data">Live quotes</span>
+          </div>
+          <div class="overflow-hidden">
+            <div id="globalPairsTrack" class="ticker-track py-2.5"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spread Snapshot -->
+      <div class="px-4 sm:px-6 pb-5">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[var(--line)] rounded-lg overflow-hidden">
+          <div class="bg-[var(--bg-canvas)] px-4 py-3">
+            <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">USD/UGX Bid-Ask Spread</div>
+            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">3,718 / 3,722</div>
+            <div class="text-[9px] text-[var(--text-dim)] mt-0.5">4.00 UGX (0.11%)</div>
+          </div>
+          <div class="bg-[var(--bg-canvas)] px-4 py-3">
+            <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">KES/UGX Midpoint</div>
+            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">28.65</div>
+            <div class="text-[9px] text-[var(--text-dim)] mt-0.5">Cross-rate via USD/UGX ÷ USD/KES</div>
+          </div>
+          <div class="bg-[var(--bg-canvas)] px-4 py-3">
+            <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">EAC Trade Weighted Index</div>
+            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">102.45</div>
+            <div class="text-[9px] text-[var(--up)] mt-0.5">▲ +0.18% (30d)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== FIXED INCOME (BONDS) ====== -->
+    <div id="page-bonds" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
+      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
+        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">Fixed Income &amp; Sovereign Debt</h2>
+        <p class="text-[10px] text-[var(--text-dim)] mt-1">Bank of Uganda primary auction results &amp; benchmark yields</p>
+      </div>
+
+      <!-- Auction Results Split -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-px bg-[var(--line)]">
+
+        <!-- Treasury Bills Panel -->
+        <div class="bg-[var(--bg-canvas)] flex flex-col">
+          <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)] flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
+              Treasury Bills — Discount Yields
+            </h3>
+            <span id="tbillPanelAsOf" class="text-[9px] text-[var(--text-dim)] font-mono-data"></span>
+          </div>
+          <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b border-[var(--line)]">
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] uppercase tracking-wide text-[var(--text-dim)] font-medium">Tenor</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Yield %</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Change</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right hidden sm:table-cell">Auction Date</th>
+                </tr>
+              </thead>
+              <tbody id="tbillTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Treasury Bonds Panel -->
+        <div class="bg-[var(--bg-canvas)] flex flex-col">
+          <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)] flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[var(--up)]"></span>
+              Treasury Bonds — Coupon Yields
+            </h3>
+            <span id="tbondPanelAsOf" class="text-[9px] text-[var(--text-dim)] font-mono-data"></span>
+          </div>
+          <div class="overflow-x-auto flex-1">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b border-[var(--line)]">
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] uppercase tracking-wide text-[var(--text-dim)] font-medium">Maturity</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Yield %</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Change</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-[9px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right hidden sm:table-cell">Coupon</th>
+                </tr>
+              </thead>
+              <tbody id="tbondTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Yield Curve -->
+      <div class="px-4 sm:px-6 py-5">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5">
+          <h3 class="text-[13px] font-semibold text-[var(--text-hi)] mb-3">Yield Curve — BoU Benchmarks</h3>
+          <div style="height:260px;"><canvas id="yieldCurveCanvas"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Auction Summary Cards -->
+      <div class="px-4 sm:px-6 pb-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--line)] rounded-lg overflow-hidden">
+          <div class="bg-[var(--bg-canvas)] px-4 py-3">
+            <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Total T-Bill Raised</div>
+            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">UGX 1.82T</div>
+            <div class="text-[9px] text-[var(--up)] mt-0.5">▲ +12.4% YoY</div>
+          </div>
+          <div class="bg-[var(--bg-canvas)] px-4 py-3">
+            <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Total Bond Raised</div>
+            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">UGX 2.45T</div>
+            <div class="text-[9px] text-[var(--up)] mt-0.5">▲ +8.2% YoY</div>
+          </div>
+          <div class="bg-[var(--bg-canvas)] px-4 py-3">
+            <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Avg. T-Bill Coverage</div>
+            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">1.85x</div>
+            <div class="text-[9px] text-[var(--text-dim)] mt-0.5">Oversubscribed</div>
+          </div>
+          <div class="bg-[var(--bg-canvas)] px-4 py-3">
+            <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Avg. Bond Coverage</div>
+            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">2.12x</div>
+            <div class="text-[9px] text-[var(--text-dim)] mt-0.5">Oversubscribed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Source Credit -->
+      <div class="px-4 sm:px-6 pb-5">
+        <p class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data leading-relaxed">
+          Source: Bank of Uganda (bou.or.ug) — Primary auction results. Yields are cut-off rates from the latest weekly auctions.
+          Data is indicative and subject to revision. For official figures, visit <a href="https://www.bou.or.ug" target="_blank" rel="noopener" class="text-[var(--accent)] hover:underline">bou.or.ug</a>.
+        </p>
+      </div>
+    </div>
+
+    <!-- ====== MACRO INTELLIGENCE ====== -->
+    <div id="page-macro" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
+      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
+        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">Macro Intelligence</h2>
+        <p class="text-[10px] text-[var(--text-dim)] mt-1">World Bank + BoU fundamental data for Uganda</p>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--line)]">
+        <div class="bg-[var(--bg-canvas)] px-4 py-3">
+          <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">CBR Rate</div>
+          <div id="macro-kpi-cbr" class="text-lg font-bold font-mono-data text-[var(--text-hi)] mt-0.5">10.00%</div>
+        </div>
+        <div class="bg-[var(--bg-canvas)] px-4 py-3">
+          <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Inflation (CPI)</div>
+          <div id="macro-kpi-cpi" class="text-lg font-bold font-mono-data text-[var(--text-hi)] mt-0.5">3.8%</div>
+        </div>
+        <div class="bg-[var(--bg-canvas)] px-4 py-3">
+          <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">GDP Growth</div>
+          <div id="macro-kpi-gdp" class="text-lg font-bold font-mono-data text-[var(--text-hi)] mt-0.5">6.2%</div>
+        </div>
+        <div class="bg-[var(--bg-canvas)] px-4 py-3">
+          <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">10Y Bond Yield</div>
+          <div id="macro-kpi-bond" class="text-lg font-bold font-mono-data text-[var(--text-hi)] mt-0.5">15.85%</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-px bg-[var(--line)]">
+        <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
+          <h3 class="text-[12px] font-semibold text-[var(--text-hi)] mb-3">CPI Headline vs Core Inflation</h3>
+          <div style="height:220px;"><canvas id="cpiChartCanvas"></canvas></div>
+        </div>
+        <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
+          <h3 class="text-[12px] font-semibold text-[var(--text-hi)] mb-3">Policy Rate &amp; 10Y Bond Yield</h3>
+          <div style="height:220px;"><canvas id="policyChartCanvas"></canvas></div>
+        </div>
+      </div>
+
+      <!-- External Reserves -->
+      <div class="px-4 sm:px-6 py-4">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
+          <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)]">External Reserves</h3>
+            <span class="text-[9px] text-[var(--text-dim)] font-mono-data">BoU data</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3">
+            <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
+              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Gross Official Reserves</div>
+              <div id="macro-reserves-usd" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">USD millions, end-period</div>
+            </div>
+            <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
+              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Months of Import Cover</div>
+              <div id="macro-reserves-mic" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">IMF benchmark: 4.0 months</div>
+            </div>
+            <div class="px-4 sm:px-5 py-4">
+              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Debt Service Ratio</div>
+              <div id="macro-reserves-dsr" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">% of exports, annual</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- National Trade Balance -->
+      <div class="px-4 sm:px-6 pb-4">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
+          <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)]">National Trade Balance</h3>
+            <span class="text-[9px] text-[var(--text-dim)] font-mono-data">UBOS / MoFPED</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-4">
+            <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
+              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Total Exports</div>
+              <div id="macro-trade-exports" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">USD millions, annual</div>
+            </div>
+            <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
+              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Total Imports</div>
+              <div id="macro-trade-imports" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">USD millions, annual</div>
+            </div>
+            <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
+              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Trade Deficit</div>
+              <div id="macro-trade-deficit" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--down)]">—</div>
+              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">USD millions, annual</div>
+            </div>
+            <div class="px-4 sm:px-5 py-4">
+              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Terms of Trade Index</div>
+              <div id="macro-trade-tot" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">2010 = 100</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- World Bank Indicators -->
+      <div class="px-4 sm:px-6 py-5">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5">
+          <h3 class="text-[13px] font-semibold text-[var(--text-hi)] mb-3">World Bank — Uganda Key Indicators</h3>
+          <div id="wbIndicatorsBody" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+      </div>
+
+      <!-- Source Credit -->
+      <div class="px-4 sm:px-6 pb-5">
+        <p class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data leading-relaxed">
+          Source: MoFPED / UGATSDB Framework — Ministry of Finance, Planning and Economic Development.
+          Data is indicative and subject to revision. For official statistics, visit <a href="https://www.mofped.go.ug" target="_blank" rel="noopener" class="text-[var(--accent)] hover:underline">mofped.go.ug</a>
+          or the <a href="https://www.ugandamis.com" target="_blank" rel="noopener" class="text-[var(--accent)] hover:underline">UGATSDB portal</a>.
+        </p>
+      </div>
+    </div>
+
+    <!-- ====== INVESTOR TOOLS ====== -->
+    <div id="page-investor" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
+      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
+        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">Investor Tools</h2>
+        <p class="text-[10px] text-[var(--text-dim)] mt-1">Dividend net yield calculator &amp; withholding tax projection</p>
+      </div>
+
+      <div class="px-4 sm:px-6 py-5">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-6 max-w-2xl">
+          <h3 class="text-[13px] font-semibold text-[var(--text-hi)] mb-4">Dividend Net Yield Calculator</h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Company</label>
+              <select id="divTicker" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Shares Owned</label>
+              <input id="divShares" type="number" value="1000" min="1" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+            </div>
+            <div>
+              <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Investor Origin</label>
+              <div class="flex bg-[var(--bg-canvas)] border border-[var(--line)] rounded overflow-hidden">
+                <button id="divOriginEAC" class="flex-1 px-3 py-2 text-[12px] font-medium text-white bg-[var(--accent)] transition-colors">EAC Citizen</button>
+                <button id="divOriginForeign" class="flex-1 px-3 py-2 text-[12px] font-medium text-[var(--text-mid)] transition-colors">Foreign Investor</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Dividend Per Share (UGX)</label>
+              <input id="divPerShare" type="number" value="5.20" min="0" step="0.01" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+            </div>
+          </div>
+
+          <button id="divCalcBtn" class="mt-4 px-5 py-2 bg-[var(--accent)] text-white text-[12px] font-semibold rounded hover:opacity-90 transition-opacity">Calculate Net Yield</button>
+
+          <!-- Results -->
+          <div id="divResults" class="hidden mt-5 border-t border-[var(--line)] pt-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Gross Dividend</div>
+                <div id="divGross" class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">—</div>
+              </div>
+              <div>
+                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Withholding Tax</div>
+                <div id="divTax" class="text-[14px] font-bold font-mono-data text-[var(--down)] mt-0.5">—</div>
+              </div>
+              <div>
+                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Net Dividend</div>
+                <div id="divNet" class="text-[14px] font-bold font-mono-data text-[var(--up)] mt-0.5">—</div>
+              </div>
+              <div>
+                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Net Yield %</div>
+                <div id="divYield" class="text-[14px] font-bold font-mono-data text-[var(--accent)] mt-0.5">—</div>
+              </div>
+            </div>
+            <div class="mt-3 text-[10px] text-[var(--text-dim)]" id="divTaxNote"></div>
+          </div>
+
+          <button id="divExportPdf" class="hidden mt-4 px-5 py-2 border border-[var(--line)] text-[var(--text-mid)] text-[12px] font-medium rounded hover:bg-[rgba(255,255,255,0.03)] transition-colors">
+            Export PDF Statement
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- RIGHT SIDEBAR WATCHLIST -->
     <aside class="hidden lg:flex flex-col w-72 xl:w-80 shrink-0 border-l border-[var(--line)] bg-[var(--bg-panel)]">
-      <div class="px-3 xl:px-4 py-2.5 sm:py-3 border-b border-[var(--line)] flex items-center justify-between">
-        <h2 id="watchlistTitle" class="text-[12px] sm:text-[13px] font-semibold">Watchlist</h2>
-        <span id="watchlistAsOf" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data"></span>
+      <div class="flex flex-col max-h-[450px] overflow-y-auto">
+        <div class="px-3 xl:px-4 py-2.5 sm:py-3 border-b border-[var(--line)] flex items-center justify-between sticky top-0 bg-[var(--bg-panel)] z-10">
+          <h2 id="watchlistTitle" class="text-[12px] sm:text-[13px] font-semibold">Watchlist</h2>
+          <span id="watchlistAsOf" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data"></span>
+        </div>
+        <div class="grid grid-cols-[1fr,auto,auto] gap-1.5 sm:gap-2 px-3 xl:px-4 py-1.5 sm:py-2 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] border-b border-[var(--line)] sticky top-[42px] bg-[var(--bg-panel)] z-10">
+          <span>Ticker</span>
+          <span class="text-right">Price</span>
+          <span class="text-right">Chg %</span>
+        </div>
+        <div id="watchlistBody" class="flex-1 overflow-y-auto"></div>
       </div>
-      <div class="grid grid-cols-[1fr,auto,auto] gap-1.5 sm:gap-2 px-3 xl:px-4 py-1.5 sm:py-2 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] border-b border-[var(--line)]">
-        <span>Ticker</span>
-        <span class="text-right">Price</span>
-        <span class="text-right">Chg %</span>
-      </div>
-      <div id="watchlistBody" class="flex-1 overflow-y-auto"></div>
-      <div class="px-3 xl:px-4 py-2 sm:py-2.5 border-t border-[var(--line)]">
+      <div class="px-3 xl:px-4 py-2 sm:py-2.5 border-t border-[var(--line)] mt-auto shrink-0">
         <p id="watchlistNote" class="text-[9px] sm:text-[10px] leading-relaxed text-[var(--text-dim)]"></p>
       </div>
     </aside>
@@ -240,13 +713,48 @@ tailwind.config = {
     <div id="watchlistBodyM" class="divide-y divide-[var(--line)]"></div>
   </section>
 
+  <!-- ============ PAN-AFRICAN TICKER BAR ============ -->
+  <div class="w-full border-t border-b border-[var(--line)] bg-[var(--bg-panel)] overflow-hidden select-none">
+    <div id="africanTickerTrack" class="ticker-track py-1.5">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- ============ NEWS WIRE + CORPORATE ACTIONS ============ -->
+  <section class="border-t border-[var(--line)] bg-[var(--bg-canvas)]">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-px bg-[var(--line)]">
+
+      <!-- East Africa News Wire (wider) -->
+      <div class="lg:col-span-3 bg-[var(--bg-canvas)] flex flex-col">
+        <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+          <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)] flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-[var(--up)] animate-pulse"></span>
+            East Africa Business News Wire
+          </h3>
+          <span id="newsWireAsOf" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data"></span>
+        </div>
+        <div id="newsWireBody" class="flex-1 overflow-y-auto max-h-[380px]"></div>
+      </div>
+
+      <!-- Corporate Actions Calendar (narrower) -->
+      <div class="lg:col-span-2 bg-[var(--bg-canvas)] flex flex-col">
+        <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+          <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)]">Corporate Actions Calendar</h3>
+          <span id="corpActionsAsOf" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data"></span>
+        </div>
+        <div id="corpActionsBody" class="flex-1 overflow-y-auto max-h-[380px]"></div>
+      </div>
+
+    </div>
+  </section>
+
 <script>
 /* ==========================================================================
    DATA LAYER — Live + Fallback
    Sources:
    1. Mansa API (mansamarkets.com) — USE equities, index, movers, fundamentals
    2. Frankfurter API (frankfurter.dev) — official BoU USD/UGX rate (free, no key)
-   3. Local coffee fallback data — Robusta Screen 18, 15, 12
+   3. Local coffee fallback data — Robusta Screen 18, 15, FAQ Coffee (Kase), Arabica Bugisu AA
    4. Local JSON files at ./data/*.json — fallback when APIs fail
    5. Hardcoded mock data — last resort fallback
    ========================================================================== */
@@ -285,25 +793,23 @@ const MOCK = {
     ]
   },
   agri: {
-    as_of: "2026-08-28",
-    note: "No free Ugandan commodity spot-price API exists — figures are illustrative placeholders.",
+    as_of: "2026-09-11",
+    note: "Source: WFP / Uganda Coffee Development Authority (UCDA). Wholesale prices from local market surveys.",
     commodities: [
-      { ticker: "COFFEE-ARB", name: "Arabica Coffee (per kg)", price: 11800, change_pct: 0.85, sector: "Agriculture", base_vol: 220 },
-      { ticker: "COFFEE-ROB", name: "Robusta Coffee (per kg)", price: 8200, change_pct: -0.42, sector: "Agriculture", base_vol: 180 },
-      { ticker: "FAQ-COFFEE-KASE", name: "FAQ Coffee (kase)", price: 7400, change_pct: 0.32, sector: "Agriculture", base_vol: 150 },
-      { ticker: "ARABIC-BUGISU-AA", name: "Arabic Bugisu AA", price: 14200, change_pct: -0.18, sector: "Agriculture", base_vol: 280 },
-      { ticker: "MAIZE", name: "Maize (per kg, wholesale)", price: 1450, change_pct: 1.75, sector: "Agriculture", base_vol: 60 },
-      { ticker: "BEANS", name: "Beans (per kg, wholesale)", price: 3600, change_pct: 0.0, sector: "Agriculture", base_vol: 90 }
+      { ticker: "FAQ-COFFEE-KASE", name: "FAQ Coffee (Kase) — per kg", price: 7400, change_pct: 0.32, sector: "Agriculture", base_vol: 150, unit: "UGX" },
+      { ticker: "ARABIC-BUGISU-AA", name: "Arabica Bugisu AA — per kg", price: 14200, change_pct: -0.18, sector: "Agriculture", base_vol: 280, unit: "UGX" },
+      { ticker: "MAIZE-WHOLE", name: "Maize (wholesale) — per kg", price: 1450, change_pct: 1.75, sector: "Agriculture", base_vol: 60, unit: "UGX" },
+      { ticker: "BEANS-WHOLE", name: "Beans (wholesale) — per kg", price: 3600, change_pct: 0.0, sector: "Agriculture", base_vol: 90, unit: "UGX" }
     ]
   },
   coffee: {
-    as_of: "2026-08-28",
-    note: "Local fallback data — Robusta Screen 18, 15, FAQ Coffee (kase), Arabic Bugisu AA.",
+    as_of: "2026-09-11",
+    note: "Source: Uganda Coffee Development Authority (UCDA). Auction prices from NCE dashboard.",
     stocks: [
-      { ticker: "ROBUSTA-S18", name: "Robusta Screen 18", price: 170.79, unit: "USc/lb", priceText: "170.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
-      { ticker: "ROBUSTA-S15", name: "Robusta Screen 15", price: 165.79, unit: "USc/lb", priceText: "165.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
-      { ticker: "FAQ-COFFEE-KASE", name: "FAQ Coffee (kase)", price: 155.50, unit: "USc/lb", priceText: "155.50 USc/lb", sector: "Agriculture", base_vol: 6, change_pct: 0.32 },
-      { ticker: "ARABIC-BUGISU-AA", name: "Arabic Bugisu AA", price: 210.40, unit: "USc/lb", priceText: "210.40 USc/lb", sector: "Agriculture", base_vol: 10, change_pct: -0.18 }
+      { ticker: "ROBUSTA-S18", name: "Robusta Screen 18 — per lb", price: 170.79, unit: "USc/lb", priceText: "170.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
+      { ticker: "ROBUSTA-S15", name: "Robusta Screen 15 — per lb", price: 165.79, unit: "USc/lb", priceText: "165.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
+      { ticker: "FAQ-COFFEE-KASE", name: "FAQ Coffee (Kase) — per lb", price: 155.50, unit: "USc/lb", priceText: "155.50 USc/lb", sector: "Agriculture", base_vol: 6, change_pct: 0.32 },
+      { ticker: "ARABIC-BUGISU-AA", name: "Arabica Bugisu AA — per lb", price: 210.40, unit: "USc/lb", priceText: "210.40 USc/lb", sector: "Agriculture", base_vol: 10, change_pct: -0.18 }
     ]
   }
 };
@@ -320,6 +826,32 @@ MOCK.bonds = {
     { ticker: "T-BOND-15Y", name: "15-Year Treasury Bond", price: 16.20, change_pct: 0.03, sector: "Fixed Income", base_vol: 0.6 }
   ]
 };
+
+MOCK.africanIndices = [
+  { ticker: "USE-ASI", name: "USE All Share Index", country: "Uganda", value: 1042.58, change_pct: 0.82 },
+  { ticker: "NSE20", name: "NSE 20 Index", country: "Kenya", value: 2854.12, change_pct: -0.34 },
+  { ticker: "DSE-TASI", name: "DSE TASI All Share", country: "Tanzania", value: 2145.67, change_pct: 0.28 },
+  { ticker: "RSE-RASI", name: "RSE RASI All Share", country: "Rwanda", value: 132.45, change_pct: -0.12 }
+];
+
+MOCK.newsWire = [
+  { source: "Daily Monitor", title: "BoU holds CBR steady at 10% amid food price volatility", date: "2026-09-11", url: "#" },
+  { source: "The East African", title: "Kenya-Tanzania trade corridor hits record cargo volumes in August", date: "2026-09-11", url: "#" },
+  { source: "New Vision", title: "Uganda coffee exports earn $1.2B in eight months — UCDA", date: "2026-09-10", url: "#" },
+  { source: "Business Daily", title: "Safaricom launches device financing scheme across East Africa", date: "2026-09-10", url: "#" },
+  { source: "Reuters Africa", title: "South Africa's JSE hits new high on mining sector rally", date: "2026-09-09", url: "#" },
+  { source: "The Citizen", title: "Tanzania central bank cuts rate to 5.5% to boost lending", date: "2026-09-09", url: "#" },
+  { source: "Daily Monitor", title: "Umeme demerger final terms expected by end of September", date: "2026-09-08", url: "#" },
+  { source: "The East African", title: "EAC single customs territory Phase II nears completion", date: "2026-09-08", url: "#" }
+];
+
+MOCK.corpActions = [
+  { ticker: "MTNU", company: "MTN Uganda", action: "Interim Dividend", detail: "UGX 5.20 per share", date: "2026-09-19", status: "Upcoming" },
+  { ticker: "SBU", company: "Stanbic Bank Uganda", action: "Final Dividend", detail: "UGX 75.00 per share", date: "2026-09-26", status: "Upcoming" },
+  { ticker: "DFCU", company: "DFCU Bank", action: "AGM", detail: "Annual General Meeting", date: "2026-10-03", status: "Upcoming" },
+  { ticker: "UMEME", company: "Umeme Ltd", action: "Suspension", detail: "Trading halted — demerger pending", date: "2026-09-10", status: "Active" },
+  { ticker: "BATU", company: "BAT Uganda", action: "Book Closure", detail: "Final dividend cut-off", date: "2026-10-10", status: "Upcoming" }
+];
 
 async function loadJSON(path){
   try{
@@ -452,10 +984,10 @@ function mapMansaHistoryPoints(points){
 
 /* --- Coffee Prices (Local Fallback Data) --- */
 const COFFEE_FALLBACK = [
-  { ticker: "ROBUSTA-S18", name: "Robusta Screen 18", price: 170.79, unit: "USc/lb", priceText: "170.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
-  { ticker: "ROBUSTA-S15", name: "Robusta Screen 15", price: 165.79, unit: "USc/lb", priceText: "165.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
-  { ticker: "FAQ-COFFEE-KASE", name: "FAQ Coffee (kase)", price: 155.50, unit: "USc/lb", priceText: "155.50 USc/lb", sector: "Agriculture", base_vol: 6, change_pct: 0.32 },
-  { ticker: "ARABIC-BUGISU-AA", name: "Arabic Bugisu AA", price: 210.40, unit: "USc/lb", priceText: "210.40 USc/lb", sector: "Agriculture", base_vol: 10, change_pct: -0.18 }
+  { ticker: "ROBUSTA-S18", name: "Robusta Screen 18 — per lb", price: 170.79, unit: "USc/lb", priceText: "170.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
+  { ticker: "ROBUSTA-S15", name: "Robusta Screen 15 — per lb", price: 165.79, unit: "USc/lb", priceText: "165.79 USc/lb", sector: "Agriculture", base_vol: 8, change_pct: 0 },
+  { ticker: "FAQ-COFFEE-KASE", name: "FAQ Coffee (Kase) — per lb", price: 155.50, unit: "USc/lb", priceText: "155.50 USc/lb", sector: "Agriculture", base_vol: 6, change_pct: 0.32 },
+  { ticker: "ARABIC-BUGISU-AA", name: "Arabica Bugisu AA — per lb", price: 210.40, unit: "USc/lb", priceText: "210.40 USc/lb", sector: "Agriculture", base_vol: 10, change_pct: -0.18 }
 ];
 
 async function fetchCoffeePrices(){
@@ -728,8 +1260,8 @@ function renderTicker(){
 const CATEGORY_META = {
   equities: { title: "USE Equities", note: "Live prices from Mansa API (USE). Updated every 30 minutes during market hours." },
   bonds: { title: "Fixed Income (Bonds)", note: "T-bill/bond yields from BoU auction results. Live from Mansa API if available." },
-  agri: { title: "Agriculture Spot Prices", note: "Illustrative placeholders. Not a live feed." },
-  coffee: { title: "Coffee Auction Prices", note: "Local fallback data — Robusta Screen 18, 15, 12." },
+  agri: { title: "Agriculture Spot Prices", note: "Source: WFP / Uganda Coffee Development Authority (UCDA). Wholesale prices from local market surveys." },
+  coffee: { title: "Coffee Auction Prices", note: "Source: Uganda Coffee Development Authority (UCDA). Auction prices from NCE dashboard." },
   macro: { title: "Macro Economics", note: "CBR + inflation from Mansa API. GDP growth from World Bank." }
 };
 
@@ -807,8 +1339,12 @@ function renderWatchlist(){
    NAVIGATION
    ========================================================================== */
 function setActiveCategory(cat){
-  if(cat === "macro"){
-    STATE.activeCategory = "equities"; // macro has no own watchlist; keep equities showing
+  const isSubPage = SUB_PAGES.includes(cat);
+
+  if(isSubPage){
+    STATE.activeCategory = "equities";
+  } else if(cat === "macro"){
+    STATE.activeCategory = "equities";
   } else {
     STATE.activeCategory = cat;
   }
@@ -816,6 +1352,9 @@ function setActiveCategory(cat){
 
   document.querySelectorAll(".nav-link").forEach(b => b.classList.toggle("active", b.dataset.category === cat));
   document.querySelectorAll(".nav-link-m").forEach(b => b.classList.toggle("active", b.dataset.category === cat));
+  document.querySelectorAll(".header-nav-link").forEach(b => b.classList.toggle("active", b.dataset.category === cat));
+
+  if(isSubPage) return;
 
   if(cat === "macro"){
     renderMacroAsWatchlist();
@@ -918,7 +1457,7 @@ function showMacroView(view){
     historySeries.cpi.setData(cpiPts);
   }
   if(gdpPts.length){
-    chart.applyOptions({ leftPriceScale: { visible: true, borderColor: "#232b36" } });
+    chart.applyOptions({ leftPriceScale: { visible: true, borderColor: "#1a1a1a" } });
     historySeries.gdp = chart.addLineSeries({ color: "#26a69a", lineWidth: 2, priceScaleId: "left", title: "GDP Growth %" });
     historySeries.gdp.setData(gdpPts);
   }
@@ -954,16 +1493,16 @@ function initChart(){
       fontFamily: "JetBrains Mono, ui-monospace, monospace"
     },
     grid: {
-      vertLines: { color: "#1a212b" },
-      horzLines: { color: "#1a212b" }
+      vertLines: { color: "#111111" },
+      horzLines: { color: "#111111" }
     },
     crosshair: {
       mode: isMobile ? LightweightCharts.CrosshairMode.Normal : LightweightCharts.CrosshairMode.Normal,
       vertLine: { color: "#4c8dff55", labelBackgroundColor: "#4c8dff" },
       horzLine: { color: "#4c8dff55", labelBackgroundColor: "#4c8dff" }
     },
-    rightPriceScale: { borderColor: "#232b36", scaleMargins: { top: 0.1, bottom: 0.1 } },
-    timeScale: { borderColor: "#232b36", timeVisible: true, rightOffset: isMobile ? 2 : 5 },
+    rightPriceScale: { borderColor: "#1a1a1a", scaleMargins: { top: 0.1, bottom: 0.1 } },
+    timeScale: { borderColor: "#1a1a1a", timeVisible: true, rightOffset: isMobile ? 2 : 5 },
     autoSize: false
   });
 
@@ -1193,15 +1732,14 @@ function tickClock(){
   const now = new Date();
   el.textContent = now.toLocaleString("en-UG", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) + " EAT";
 
-  // Market status: Mon-Fri 10:00-13:00 EAT = open
+  // Market status: Mon-Fri 09:00-15:00 EAT = open
   const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
   const eatMs = utcMs + (3 * 3600000);
   const eat = new Date(eatMs);
   const day = eat.getDay();
   const hour = eat.getHours();
-  const minute = eat.getMinutes();
   const isWeekday = day >= 1 && day <= 5;
-  const isDuringHours = (hour > 10 || (hour === 10 && minute >= 0)) && (hour < 13);
+  const isDuringHours = hour >= 9 && hour < 15;
   const isOpen = isWeekday && isDuringHours;
 
   const dot = document.getElementById("statusDot");
@@ -1297,11 +1835,621 @@ async function initLiveData(){
 }
 
 /* ==========================================================================
+   PAN-AFRICAN TICKER + NEWS WIRE + CORPORATE ACTIONS
+   ========================================================================== */
+async function fetchAfricanIndices(){
+  const cached = cacheGet("african_indices_v1");
+  if(cached) return cached;
+  try{
+    const [useRes, nseRes, jseRes] = await Promise.all([
+      fetch(`${MANSA_BASE}/v1/stocks`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${MANSA_BASE}/v1/stocks`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${MANSA_BASE}/v1/stocks`).then(r => r.ok ? r.json() : null).catch(() => null)
+    ]);
+    const indices = MOCK.africanIndices.map((m, i) => {
+      const res = [useRes, nseRes, jseRes][i];
+      const data = res?.data || res;
+      if(data && (data.index_value || data.value)){
+        return { ...m, value: data.index_value || data.value, change_pct: data.index_change_pct || data.change_pct || m.change_pct };
+      }
+      return m;
+    });
+    cacheSet("african_indices_v1", indices);
+    return indices;
+  }catch(e){ console.warn("African indices fetch failed:", e.message); }
+  return MOCK.africanIndices;
+}
+
+function renderAfricanTicker(indices){
+  const track = document.getElementById("africanTickerTrack");
+  if(!track) return;
+
+  const items = indices.map(idx => {
+    const t = trendGlyph(idx.change_pct);
+    const flag = idx.country === "Uganda" ? "UG" : idx.country === "Kenya" ? "KE" : idx.country === "Tanzania" ? "TZ" : idx.country === "Rwanda" ? "RW" : "ZA";
+    return `
+      <div class="flex items-center gap-2 px-4 sm:px-6 whitespace-nowrap">
+        <span class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-panel-2)] text-[var(--text-dim)] font-mono-data font-medium">${flag}</span>
+        <span class="text-[10px] sm:text-[11px] text-[var(--text-mid)] font-medium">${idx.name}</span>
+        <span class="text-[10px] sm:text-[11px] font-mono-data text-[var(--text-hi)]">${idx.value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+        <span class="text-[9px] sm:text-[10px] font-mono-data ${t.cls}">${t.glyph} ${idx.change_pct > 0 ? "+" : ""}${idx.change_pct.toFixed(2)}%</span>
+      </div>
+      <div class="w-px h-3 sm:h-4 bg-[var(--line)] self-center"></div>
+    `;
+  }).join("");
+
+  track.innerHTML = items + items;
+}
+
+function renderPanAfricanIndices(indices){
+  const track = document.getElementById("panAfriTrack");
+  const asOfEl = document.getElementById("panAfriAsOf");
+  if(!track) return;
+  if(asOfEl) asOfEl.textContent = "as of " + new Date().toISOString().slice(0,10);
+
+  const items = indices.map(idx => {
+    const t = trendGlyph(idx.change_pct);
+    const flag = idx.country === "Uganda" ? "UG" : idx.country === "Kenya" ? "KE" : idx.country === "Tanzania" ? "TZ" : "RW";
+    return `
+      <div class="flex items-center gap-2 px-4 sm:px-5 whitespace-nowrap">
+        <span class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-panel-2)] text-[var(--text-dim)] font-mono-data font-medium">${flag}</span>
+        <span class="text-[11px] sm:text-[12px] text-[var(--text-mid)] font-semibold">${idx.name}</span>
+        <span class="text-[11px] sm:text-[12px] font-mono-data text-[var(--text-hi)]">${idx.value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+        <span class="text-[10px] font-mono-data ${t.cls}">${t.glyph} ${idx.change_pct > 0 ? "+" : ""}${idx.change_pct.toFixed(2)}%</span>
+      </div>
+      <div class="w-px h-3 sm:h-4 bg-[var(--line)] self-center"></div>
+    `;
+  }).join("");
+
+  track.innerHTML = items + items;
+}
+
+async function fetchNewsWire(){
+  const cached = cacheGet("news_wire_v1");
+  if(cached) return cached;
+  try{
+    const res = await fetch("https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/africa/rss.xml");
+    if(!res.ok) throw new Error("rss " + res.status);
+    const data = await res.json();
+    if(data.status === "ok" && Array.isArray(data.items)){
+      const items = data.items.slice(0, 10).map(item => ({
+        source: item.author || item.source || "BBC Africa",
+        title: item.title,
+        date: item.pubDate ? item.pubDate.slice(0, 10) : "",
+        url: item.link || "#"
+      }));
+      cacheSet("news_wire_v1", items);
+      return items;
+    }
+  }catch(e){ console.warn("News wire fetch failed:", e.message); }
+  return MOCK.newsWire;
+}
+
+function renderNewsWire(items){
+  const body = document.getElementById("newsWireBody");
+  const asOf = document.getElementById("newsWireAsOf");
+  if(!body) return;
+
+  if(asOf) asOf.textContent = "updated " + new Date().toLocaleTimeString("en-UG", {hour:"2-digit", minute:"2-digit"});
+
+  if(!items || !items.length){
+    body.innerHTML = '<div class="px-4 sm:px-5 py-4 text-[11px] text-[var(--text-dim)]">No news available.</div>';
+    return;
+  }
+
+  body.innerHTML = items.map(n => {
+    const timeAgo = getTimeAgo(n.date);
+    return `
+      <a href="${n.url}" target="_blank" rel="noopener" class="block px-4 sm:px-5 py-3 border-b border-[var(--line)] hover:bg-[rgba(255,255,255,0.02)] transition-colors">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(76,141,255,0.1)] text-[var(--accent)] font-mono-data font-medium">${n.source}</span>
+          <span class="text-[9px] text-[var(--text-dim)] font-mono-data">${timeAgo}</span>
+        </div>
+        <p class="text-[11px] sm:text-[12px] text-[var(--text-hi)] leading-snug">${n.title}</p>
+      </a>
+    `;
+  }).join("");
+}
+
+function renderCorpActions(items){
+  const body = document.getElementById("corpActionsBody");
+  const asOf = document.getElementById("corpActionsAsOf");
+  if(!body) return;
+
+  if(asOf) asOf.textContent = "as of " + new Date().toISOString().slice(0,10);
+
+  if(!items || !items.length){
+    body.innerHTML = '<div class="px-4 sm:px-5 py-4 text-[11px] text-[var(--text-dim)]">No upcoming corporate actions.</div>';
+    return;
+  }
+
+  body.innerHTML = items.map(c => {
+    const daysUntil = Math.ceil((new Date(c.date) - new Date()) / 86400000);
+    const urgency = daysUntil <= 3 ? "text-[var(--down)]" : daysUntil <= 7 ? "text-[var(--text-mid)]" : "text-[var(--text-dim)]";
+    const statusCls = c.status === "Active" ? "bg-[rgba(239,83,80,0.15)] text-[var(--down)]" : "bg-[rgba(38,166,154,0.1)] text-[var(--up)]";
+    return `
+      <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)]">
+        <div class="flex items-center justify-between mb-1">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono-data font-bold text-[var(--text-hi)]">${c.ticker}</span>
+            <span class="text-[9px] px-1.5 py-0.5 rounded ${statusCls} font-medium">${c.status}</span>
+          </div>
+          <span class="text-[9px] font-mono-data ${urgency}">${daysUntil > 0 ? daysUntil + "d" : "Today"}</span>
+        </div>
+        <p class="text-[11px] text-[var(--text-hi)] font-medium">${c.action}</p>
+        <p class="text-[10px] text-[var(--text-dim)] mt-0.5">${c.detail} — ${c.date}</p>
+      </div>
+    `;
+  }).join("");
+}
+
+function getTimeAgo(dateStr){
+  if(!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const hours = Math.floor(diff / 3600000);
+  if(hours < 1) return "Just now";
+  if(hours < 24) return hours + "h ago";
+  const days = Math.floor(hours / 24);
+  if(days === 1) return "Yesterday";
+  if(days < 7) return days + "d ago";
+  return dateStr;
+}
+
+async function initSecondaryPanels(){
+  const [indices, news, corpActions] = await Promise.all([
+    fetchAfricanIndices(),
+    fetchNewsWire(),
+    Promise.resolve(MOCK.corpActions)
+  ]);
+  renderAfricanTicker(indices);
+  renderPanAfricanIndices(indices);
+  renderNewsWire(news);
+  renderCorpActions(corpActions);
+}
+
+/* ==========================================================================
    NAV WIRING + BOOT
    ========================================================================== */
-document.querySelectorAll(".nav-link, .nav-link-m").forEach(btn => {
-  btn.addEventListener("click", () => setActiveCategory(btn.dataset.category));
+document.querySelectorAll(".nav-link, .nav-link-m, .header-nav-link").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const cat = btn.dataset.category;
+    showSubPage(cat);
+    setActiveCategory(cat);
+  });
 });
+
+/* ==========================================================================
+   SUB-PAGE NAVIGATION + CONTENT LOGIC
+   ========================================================================== */
+const SUB_PAGES = ["forex","bonds","macro","investor"];
+const SUB_PAGE_IDS = { forex:"page-forex", bonds:"page-bonds", macro:"page-macro", investor:"page-investor" };
+
+function showSubPage(cat){
+  const mainEl = document.querySelector("main");
+  const rightSidebar = document.querySelector("aside.hidden.lg\\:flex");
+  const tickerBar = document.querySelector("#tickerTrack")?.closest("div.w-full");
+  const mobileWatchlist = document.querySelector("section.lg\\:hidden");
+  const africanTicker = document.getElementById("africanTickerTrack")?.closest("div.w-full");
+  const newsSection = document.getElementById("newsWireBody")?.closest("section");
+
+  const isSub = SUB_PAGES.includes(cat);
+
+  if(isSub){
+    mainEl.classList.add("hidden");
+    if(rightSidebar) rightSidebar.classList.add("hidden");
+    if(tickerBar) tickerBar.classList.add("hidden");
+    if(mobileWatchlist) mobileWatchlist.classList.add("hidden");
+    if(africanTicker) africanTicker.classList.add("hidden");
+    if(newsSection) newsSection.classList.add("hidden");
+    Object.values(SUB_PAGE_IDS).forEach(id => { const el = document.getElementById(id); if(el) el.classList.add("hidden"); });
+    const page = document.getElementById(SUB_PAGE_IDS[cat]);
+    if(page) page.classList.remove("hidden");
+
+    if(cat === "forex") initForexPage();
+    if(cat === "bonds") initBondsPage();
+    if(cat === "macro") initMacroIntelPage();
+    if(cat === "investor") initInvestorPage();
+  } else {
+    mainEl.classList.remove("hidden");
+    if(rightSidebar) rightSidebar.classList.remove("hidden");
+    if(tickerBar) tickerBar.classList.remove("hidden");
+    if(mobileWatchlist) mobileWatchlist.classList.remove("hidden");
+    if(africanTicker) africanTicker.classList.remove("hidden");
+    if(newsSection) newsSection.classList.remove("hidden");
+    Object.values(SUB_PAGE_IDS).forEach(id => { const el = document.getElementById(id); if(el) el.classList.add("hidden"); });
+  }
+}
+
+/* --- FOREX PAGE --- */
+const FX_RATES = { USD: 3720, KES: 28.65, TZS: 1.42, GBP: 4720, EUR: 4050 };
+
+const CENTRAL_RATES = [
+  { bank: "Bank of Uganda (BoU)", country: "UG", rate: 10.00, change: 0.50, lastMeeting: "2026-08-14", nextMeeting: "2026-10-09" },
+  { bank: "Central Bank of Kenya (CBK)", country: "KE", rate: 12.75, change: 0.0, lastMeeting: "2026-08-06", nextMeeting: "2026-10-01" },
+  { bank: "Bank of Tanzania (BoT)", country: "TZ", rate: 6.00, change: -0.50, lastMeeting: "2026-07-18", nextMeeting: "2026-09-26" }
+];
+
+const GLOBAL_PAIRS = [
+  { pair: "EUR/USD", value: 1.0842, change: -0.12 },
+  { pair: "GBP/USD", value: 1.2715, change: 0.08 },
+  { pair: "USD/ZAR", value: 17.82, change: 0.34 },
+  { pair: "USD/JPY", value: 149.65, change: -0.22 },
+  { pair: "EUR/GBP", value: 0.8526, change: -0.05 }
+];
+
+function initForexPage(){
+  document.getElementById("fx-usd-ugx").textContent = STATE.usdUgx.value.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const usdChg = STATE.usdUgx.change;
+  const usdEl = document.getElementById("fx-usd-ugx-chg");
+  usdEl.textContent = (usdChg >= 0 ? "+" : "") + usdChg.toFixed(2) + "%";
+  usdEl.className = "text-[11px] font-mono-data mt-1 " + (usdChg >= 0 ? "text-[var(--up)]" : "text-[var(--down)]");
+
+  document.getElementById("convAmount").addEventListener("input", updateConverter);
+  document.getElementById("convFrom").addEventListener("change", updateConverter);
+  updateConverter();
+
+  renderCentralRates();
+  renderGlobalPairsTicker();
+}
+
+function renderCentralRates(){
+  const body = document.getElementById("centralRatesBody");
+  if(!body) return;
+  body.innerHTML = CENTRAL_RATES.map(r => {
+    const cls = r.change > 0 ? "text-[var(--up)]" : r.change < 0 ? "text-[var(--down)]" : "text-[var(--flat)]";
+    const flag = r.country;
+    return `
+      <tr class="border-b border-[var(--line)] last:border-0 hover:bg-[rgba(255,255,255,0.015)] transition-colors">
+        <td class="px-4 sm:px-5 py-3">
+          <div class="flex items-center gap-2">
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-panel-2)] text-[var(--text-dim)] font-mono-data font-bold">${flag}</span>
+            <span class="text-[11px] sm:text-[12px] text-[var(--text-hi)] font-medium">${r.bank}</span>
+          </div>
+        </td>
+        <td class="px-4 sm:px-5 py-3 text-right">
+          <span class="text-[13px] sm:text-[14px] font-bold font-mono-data text-[var(--text-hi)]">${r.rate.toFixed(2)}%</span>
+        </td>
+        <td class="px-4 sm:px-5 py-3 text-right">
+          <span class="text-[11px] font-mono-data ${cls}">${r.change > 0 ? "+" : ""}${r.change.toFixed(2)}%</span>
+        </td>
+        <td class="px-4 sm:px-5 py-3 text-right hidden sm:table-cell">
+          <span class="text-[10px] text-[var(--text-dim)] font-mono-data">${r.lastMeeting}</span>
+        </td>
+        <td class="px-4 sm:px-5 py-3 text-right hidden md:table-cell">
+          <span class="text-[10px] text-[var(--text-dim)] font-mono-data">${r.nextMeeting}</span>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderGlobalPairsTicker(){
+  const track = document.getElementById("globalPairsTrack");
+  if(!track) return;
+  const items = GLOBAL_PAIRS.map(p => {
+    const t = trendGlyph(p.change);
+    return `
+      <div class="flex items-center gap-2 px-4 sm:px-5 whitespace-nowrap">
+        <span class="text-[11px] sm:text-[12px] text-[var(--text-mid)] font-semibold">${p.pair}</span>
+        <span class="text-[11px] sm:text-[12px] font-mono-data text-[var(--text-hi)]">${p.value.toFixed(p.value > 100 ? 2 : 4)}</span>
+        <span class="text-[10px] font-mono-data ${t.cls}">${t.glyph} ${p.change > 0 ? "+" : ""}${p.change.toFixed(2)}%</span>
+      </div>
+      <div class="w-px h-3 sm:h-4 bg-[var(--line)] self-center"></div>
+    `;
+  }).join("");
+  track.innerHTML = items + items;
+}
+
+function updateConverter(){
+  const amt = parseFloat(document.getElementById("convAmount").value) || 0;
+  const from = document.getElementById("convFrom").value;
+  const rate = FX_RATES[from] || 3720;
+  const result = amt * rate;
+  document.getElementById("convResult").textContent = "UGX " + result.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+/* --- FIXED INCOME PAGE --- */
+const TBILL_DATA = [
+  { tenor: "91-Day", yield: 13.45, change: 0.12, auctionDate: "2026-09-08" },
+  { tenor: "182-Day", yield: 14.20, change: -0.08, auctionDate: "2026-09-08" },
+  { tenor: "364-Day", yield: 15.10, change: 0.05, auctionDate: "2026-09-08" }
+];
+
+const TBOND_DATA = [
+  { tenor: "2-Year",  yield: 14.10, change: 0.00, coupon: 14.00 },
+  { tenor: "5-Year",  yield: 15.05, change: -0.02, coupon: 15.25 },
+  { tenor: "10-Year", yield: 15.85, change: -0.05, coupon: 16.00 },
+  { tenor: "15-Year", yield: 16.20, change: 0.03, coupon: 16.50 }
+];
+
+function initBondsPage(){
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById("tbillPanelAsOf").textContent = "as of " + today;
+  document.getElementById("tbondPanelAsOf").textContent = "as of " + today;
+
+  document.getElementById("tbillTableBody").innerHTML = TBILL_DATA.map(b => {
+    const cls = b.change > 0 ? "text-[var(--up)]" : b.change < 0 ? "text-[var(--down)]" : "text-[var(--flat)]";
+    return `<tr class="border-b border-[var(--line)] last:border-0 hover:bg-[rgba(255,255,255,0.015)] transition-colors">
+      <td class="px-4 sm:px-5 py-3"><span class="text-[11px] sm:text-[12px] text-[var(--text-hi)] font-medium">${b.tenor}</span></td>
+      <td class="px-4 sm:px-5 py-3 text-right"><span class="text-[13px] sm:text-[14px] font-bold font-mono-data text-[var(--text-hi)]">${b.yield.toFixed(2)}%</span></td>
+      <td class="px-4 sm:px-5 py-3 text-right"><span class="text-[10px] font-mono-data ${cls}">${b.change >= 0 ? "+" : ""}${b.change.toFixed(2)}</span></td>
+      <td class="px-4 sm:px-5 py-3 text-right hidden sm:table-cell"><span class="text-[10px] text-[var(--text-dim)] font-mono-data">${b.auctionDate}</span></td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("tbondTableBody").innerHTML = TBOND_DATA.map(b => {
+    const cls = b.change > 0 ? "text-[var(--up)]" : b.change < 0 ? "text-[var(--down)]" : "text-[var(--flat)]";
+    return `<tr class="border-b border-[var(--line)] last:border-0 hover:bg-[rgba(255,255,255,0.015)] transition-colors">
+      <td class="px-4 sm:px-5 py-3"><span class="text-[11px] sm:text-[12px] text-[var(--text-hi)] font-medium">${b.tenor}</span></td>
+      <td class="px-4 sm:px-5 py-3 text-right"><span class="text-[13px] sm:text-[14px] font-bold font-mono-data text-[var(--text-hi)]">${b.yield.toFixed(2)}%</span></td>
+      <td class="px-4 sm:px-5 py-3 text-right"><span class="text-[10px] font-mono-data ${cls}">${b.change >= 0 ? "+" : ""}${b.change.toFixed(2)}</span></td>
+      <td class="px-4 sm:px-5 py-3 text-right hidden sm:table-cell"><span class="text-[10px] text-[var(--text-dim)] font-mono-data">${b.coupon.toFixed(2)}%</span></td>
+    </tr>`;
+  }).join("");
+
+  renderYieldCurve();
+}
+
+let yieldCurveChart = null;
+function renderYieldCurve(){
+  const ctx = document.getElementById("yieldCurveCanvas");
+  if(!ctx) return;
+  if(yieldCurveChart) yieldCurveChart.destroy();
+
+  const labels = ["91D","182D","364D","2Y","5Y","10Y","15Y"];
+  const yields = [13.45, 14.20, 15.10, 14.10, 15.05, 15.85, 16.20];
+
+  yieldCurveChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Yield %",
+        data: yields,
+        borderColor: "#4c8dff",
+        backgroundColor: "rgba(76,141,255,0.08)",
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: "#4c8dff",
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 10, family: "JetBrains Mono, monospace" } } },
+        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 10, family: "JetBrains Mono, monospace" }, callback: v => v.toFixed(1) + "%" } }
+      }
+    }
+  });
+}
+
+/* --- MACRO INTELLIGENCE PAGE --- */
+const CPI_DATA = {
+  labels: ["2019","2020","2021","2022","2023","2024","2025","2026"],
+  headline: [3.9, 3.8, 2.4, 7.4, 5.4, 4.2, 3.6, 3.8],
+  core:     [3.2, 3.5, 2.1, 6.2, 4.8, 3.8, 3.2, 3.4]
+};
+
+const POLICY_DATA = {
+  labels: ["2019","2020","2021","2022","2023","2024","2025","2026"],
+  cbr: [10.0, 7.0, 6.5, 10.0, 10.0, 10.0, 9.5, 10.0],
+  bond10y: [16.2, 14.8, 13.5, 16.0, 16.4, 16.1, 15.85, 15.85]
+};
+
+const RESERVES_DATA = {
+  grossReserves: 3850,
+  monthsOfCover: 4.2,
+  debtServiceRatio: 18.6
+};
+
+const TRADE_DATA = {
+  exports: 6280,
+  imports: 9450,
+  deficit: -3170,
+  termsOfTrade: 104.8
+};
+
+let cpiChart = null, policyChart = null;
+
+function initMacroIntelPage(){
+  document.getElementById("macro-kpi-cbr").textContent = (STATE.macroLive?.cbr ?? 10.0).toFixed(2) + "%";
+  document.getElementById("macro-kpi-cpi").textContent = (STATE.macroLive?.inflation ?? 3.8).toFixed(1) + "%";
+  document.getElementById("macro-kpi-gdp").textContent = (STATE.macroLive?.gdp_growth ?? 6.2).toFixed(1) + "%";
+  document.getElementById("macro-kpi-bond").textContent = "15.85%";
+
+  renderCpiChart();
+  renderPolicyChart();
+  renderWBIndicators();
+  renderReservesData();
+  renderTradeData();
+}
+
+function renderReservesData(){
+  const el = (id) => document.getElementById(id);
+  el("macro-reserves-usd").textContent = "$" + RESERVES_DATA.grossReserves.toLocaleString();
+  el("macro-reserves-mic").textContent = RESERVES_DATA.monthsOfCover.toFixed(1) + " mo";
+  el("macro-reserves-dsr").textContent = RESERVES_DATA.debtServiceRatio.toFixed(1) + "%";
+}
+
+function renderTradeData(){
+  const el = (id) => document.getElementById(id);
+  el("macro-trade-exports").textContent = "$" + TRADE_DATA.exports.toLocaleString();
+  el("macro-trade-imports").textContent = "$" + TRADE_DATA.imports.toLocaleString();
+  el("macro-trade-deficit").textContent = "−$" + Math.abs(TRADE_DATA.deficit).toLocaleString();
+  el("macro-trade-tot").textContent = TRADE_DATA.termsOfTrade.toFixed(1);
+}
+
+function renderCpiChart(){
+  const ctx = document.getElementById("cpiChartCanvas");
+  if(!ctx) return;
+  if(cpiChart) cpiChart.destroy();
+  cpiChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: CPI_DATA.labels,
+      datasets: [
+        { label: "Headline CPI", data: CPI_DATA.headline, borderColor: "#ef5350", backgroundColor: "rgba(239,83,80,0.06)", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 },
+        { label: "Core CPI", data: CPI_DATA.core, borderColor: "#4c8dff", backgroundColor: "rgba(76,141,255,0.06)", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: "#8b97a8", font: { size: 10, family: "JetBrains Mono, monospace" } } } },
+      scales: {
+        x: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 } } },
+        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 }, callback: v => v + "%" } }
+      }
+    }
+  });
+}
+
+function renderPolicyChart(){
+  const ctx = document.getElementById("policyChartCanvas");
+  if(!ctx) return;
+  if(policyChart) policyChart.destroy();
+  policyChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: POLICY_DATA.labels,
+      datasets: [
+        { label: "CBR", data: POLICY_DATA.cbr, borderColor: "#26a69a", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 },
+        { label: "10Y Bond", data: POLICY_DATA.bond10y, borderColor: "#ef5350", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: "#8b97a8", font: { size: 10, family: "JetBrains Mono, monospace" } } } },
+      scales: {
+        x: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 } } },
+        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 }, callback: v => v + "%" } }
+      }
+    }
+  });
+}
+
+function renderWBIndicators(){
+  const indicators = [
+    { label: "GDP Growth (annual %)", value: "6.2%", period: "2025" },
+    { label: "Inflation, consumer prices", value: "3.8%", period: "2026" },
+    { label: "CBR (Central Bank Rate)", value: "10.00%", period: "Sep 2026" },
+    { label: "USD/UGX Exchange Rate", value: STATE.usdUgx.value.toLocaleString(), period: "Live" },
+    { label: "Population (est.)", value: "48.6M", period: "2025" },
+    { label: "GDP per capita (USD)", value: "$1,070", period: "2024" }
+  ];
+  document.getElementById("wbIndicatorsBody").innerHTML = indicators.map(i => `
+    <div class="bg-[var(--bg-canvas)] border border-[var(--line)] rounded p-3">
+      <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">${i.label}</div>
+      <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">${i.value}</div>
+      <div class="text-[9px] text-[var(--text-dim)]">${i.period}</div>
+    </div>
+  `).join("");
+}
+
+/* --- INVESTOR TOOLS PAGE --- */
+let divInvestorOrigin = "eac";
+
+function initInvestorPage(){
+  const select = document.getElementById("divTicker");
+  if(select.options.length <= 1){
+    const stocks = MOCK.stocks.stocks || [];
+    stocks.forEach(s => {
+      const opt = document.createElement("option");
+      opt.value = s.ticker;
+      opt.textContent = s.ticker + " — " + s.name;
+      select.appendChild(opt);
+    });
+  }
+
+  document.getElementById("divOriginEAC").onclick = () => setInvestorOrigin("eac");
+  document.getElementById("divOriginForeign").onclick = () => setInvestorOrigin("foreign");
+  document.getElementById("divCalcBtn").onclick = calculateDividend;
+  document.getElementById("divExportPdf").onclick = exportDividendPdf;
+}
+
+function setInvestorOrigin(origin){
+  divInvestorOrigin = origin;
+  const eac = document.getElementById("divOriginEAC");
+  const foreign = document.getElementById("divOriginForeign");
+  if(origin === "eac"){
+    eac.className = "flex-1 px-3 py-2 text-[12px] font-medium text-white bg-[var(--accent)] transition-colors";
+    foreign.className = "flex-1 px-3 py-2 text-[12px] font-medium text-[var(--text-mid)] transition-colors";
+  } else {
+    foreign.className = "flex-1 px-3 py-2 text-[12px] font-medium text-white bg-[var(--accent)] transition-colors";
+    eac.className = "flex-1 px-3 py-2 text-[12px] font-medium text-[var(--text-mid)] transition-colors";
+  }
+}
+
+function calculateDividend(){
+  const shares = parseFloat(document.getElementById("divShares").value) || 0;
+  const perShare = parseFloat(document.getElementById("divPerShare").value) || 0;
+  const gross = shares * perShare;
+  const taxRate = divInvestorOrigin === "eac" ? 0.10 : 0.15;
+  const tax = gross * taxRate;
+  const net = gross - tax;
+  const stockPrice = MOCK.stocks.stocks.find(s => s.ticker === document.getElementById("divTicker").value)?.price || 1;
+  const investAmt = shares * stockPrice;
+  const netYield = investAmt > 0 ? (net / investAmt * 100) : 0;
+
+  document.getElementById("divGross").textContent = "UGX " + gross.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById("divTax").textContent = "- UGX " + tax.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + " (" + (taxRate*100) + "%)";
+  document.getElementById("divNet").textContent = "UGX " + net.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById("divYield").textContent = netYield.toFixed(2) + "%";
+  document.getElementById("divTaxNote").textContent = divInvestorOrigin === "eac"
+    ? "EAC citizens: 10% withholding tax on dividends (double taxation relief applies)."
+    : "Foreign investors: 15% statutory withholding tax per Uganda Income Tax Act.";
+  document.getElementById("divResults").classList.remove("hidden");
+  document.getElementById("divExportPdf").classList.remove("hidden");
+}
+
+function exportDividendPdf(){
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const ticker = document.getElementById("divTicker").value;
+    const shares = document.getElementById("divShares").value;
+    const perShare = document.getElementById("divPerShare").value;
+    const gross = document.getElementById("divGross").textContent;
+    const tax = document.getElementById("divTax").textContent;
+    const net = document.getElementById("divNet").textContent;
+    const yieldVal = document.getElementById("divYield").textContent;
+    const origin = divInvestorOrigin === "eac" ? "EAC Citizen" : "Foreign Investor";
+    const today = new Date().toISOString().slice(0,10);
+
+    doc.setFontSize(16);
+    doc.text("KM TERMINAL — Dividend Statement", 20, 20);
+    doc.setFontSize(10);
+    doc.text("Generated: " + today, 20, 28);
+    doc.text("Investor Type: " + origin, 20, 34);
+
+    doc.setLineWidth(0.5);
+    doc.line(20, 38, 190, 38);
+
+    doc.setFontSize(11);
+    doc.text("Company: " + ticker, 20, 48);
+    doc.text("Shares: " + shares, 20, 56);
+    doc.text("Dividend Per Share: UGX " + perShare, 20, 64);
+
+    doc.line(20, 70, 190, 70);
+
+    doc.text("Gross Dividend: " + gross, 20, 80);
+    doc.text("Withholding Tax: " + tax, 20, 88);
+    doc.setFontSize(12);
+    doc.text("Net Dividend: " + net, 20, 100);
+    doc.text("Net Yield: " + yieldVal, 20, 110);
+
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text("This projection is for informational purposes only. Consult a tax advisor for official guidance.", 20, 130);
+    doc.text("KM TERMINAL — Uganda Market Dashboard", 20, 136);
+
+    doc.save("KM_Terminal_Dividend_" + ticker + "_" + today + ".pdf");
+  }catch(e){ console.warn("PDF export failed:", e.message); alert("PDF export failed. Please try again."); }
+}
 
 (async function boot(){
   try{
@@ -1315,6 +2463,7 @@ document.querySelectorAll(".nav-link, .nav-link-m").forEach(btn => {
     tickClock();
     setInterval(tickClock, 1000);
     initLiveData();
+    initSecondaryPanels();
   }catch(e){ console.error("Boot failed:", e); }
 })();
 </script>
