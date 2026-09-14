@@ -182,7 +182,6 @@ try{
       <button data-category="investor" class="header-nav-link text-[11px] sm:text-[12px] xl:text-[13px] text-[var(--text-mid)] hover:text-white transition-colors font-semibold whitespace-nowrap">Investor Tools</button>
     </nav>
     <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-      <span id="liveFeedBadge" class="hidden text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-1 rounded bg-[var(--down)] text-white font-medium">Live feed offline</span>
       <span class="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-1 rounded border border-[var(--line)] text-[var(--text-mid)]">Live</span>
       <span id="marketStatusBadge" class="hidden md:inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded font-medium font-mono-data">
         <span id="statusDot" class="w-2 h-2 rounded-full"></span>
@@ -988,11 +987,11 @@ MOCK.newsWire = [
 ];
 
 MOCK.corpActions = [
-  { ticker: "MTNU", company: "MTN Uganda", action: "Interim Dividend", detail: "UGX 5.20 per share", date: "2026-09-19", status: "Upcoming" },
-  { ticker: "SBU", company: "Stanbic Bank Uganda", action: "Final Dividend", detail: "UGX 75.00 per share", date: "2026-09-26", status: "Upcoming" },
-  { ticker: "DFCU", company: "DFCU Bank", action: "AGM", detail: "Annual General Meeting", date: "2026-10-03", status: "Upcoming" },
-  { ticker: "UMEME", company: "Umeme Ltd", action: "Suspension", detail: "Trading halted — demerger pending", date: "2026-09-10", status: "Active" },
-  { ticker: "BATU", company: "BAT Uganda", action: "Book Closure", detail: "Final dividend cut-off", date: "2026-10-10", status: "Upcoming" }
+  { company: "MTN Uganda", event: "Interim Dividend", details: "UGX 5.20 per share — MTNU", date: "2026-09-19" },
+  { company: "Stanbic Bank Uganda", event: "Final Dividend", details: "UGX 75.00 per share — SBU", date: "2026-09-26" },
+  { company: "DFCU Bank", event: "AGM", details: "Annual General Meeting — DFCU", date: "2026-10-03" },
+  { company: "Umeme Ltd", event: "Trading Halt", details: "Demerger pending — UMEME", date: "2026-09-10" },
+  { company: "BAT Uganda", event: "Book Closure", details: "Final dividend cut-off — BATU", date: "2026-10-10" }
 ];
 
 MOCK.remittanceInflows = {
@@ -1302,8 +1301,7 @@ let STATE = {
   activeCategory: "equities",
   selectedTicker: null,
   activeRange: "1M",
-  coffeeLastUpdate: null,
-  feedErrors: []
+  coffeeLastUpdate: null
 };
 
 /* ==========================================================================
@@ -1329,22 +1327,25 @@ async function loadAllData(){
     return results;
   };
 
-  const [macroLocal, stocksLocal, agriLocal, liveRate, coffeeData, wbMacroTimeseries] = await safeAll([
+  const [macroLocal, stocksLocal, agriLocal, liveRate, coffeeData, wbMacroTimeseries, mansaMacroLive] = await safeAll([
     loadJSON("./data/macro_indicators.json", MOCK.macro),
     loadJSON("./data/stocks_daily.json", MOCK.stocks),
     loadJSON("./data/agriculture_spot.json", MOCK.agri),
     fetchForex(),
     fetchCoffeePrices(),
-    fetchWorldBankMacroTimeseries()
-  ], [MOCK.macro, MOCK.stocks, MOCK.agri, FOREX_BASELINE, COFFEE_FALLBACK, WB_MACRO_BASELINE]);
+    fetchWorldBankMacroTimeseries(),
+    fetchMansaMacro()
+  ], [MOCK.macro, MOCK.stocks, MOCK.agri, FOREX_BASELINE, COFFEE_FALLBACK, WB_MACRO_BASELINE, MANS_MACRO_BASELINE]);
 
+  STATE.macroLive = mansaMacroLive;
   STATE.macro = macroLocal || MOCK.macro;
   if(wbMacroTimeseries){
     STATE.wbMacroTimeseries = wbMacroTimeseries;
     const latestCpi = wbMacroTimeseries.cpi?.values?.length ? wbMacroTimeseries.cpi.values[wbMacroTimeseries.cpi.values.length - 1] : null;
     const latestGdp = wbMacroTimeseries.gdp?.values?.length ? wbMacroTimeseries.gdp.values[wbMacroTimeseries.gdp.values.length - 1] : null;
+    const liveCbr = mansaMacroLive?.cbr ?? 10.0;
     const indicators = [];
-    indicators.push({ id: "CBR", label: "CBR", value: 10.0, change: 0.0, unit: "%" });
+    indicators.push({ id: "CBR", label: "CBR", value: liveCbr, change: 0.0, unit: "%" });
     if(latestCpi != null) indicators.push({ id: "CPI", label: "Inflation", value: latestCpi, change: 0.0, unit: "%" });
     if(latestGdp != null) indicators.push({ id: "GDP", label: "GDP Growth", value: latestGdp, change: 0, unit: "%" });
     indicators.push({ id: "BOND10Y", label: "10Y Bond", value: BOU_YIELDS.bond10Y.yield, change: BOU_YIELDS.bond10Y.change, unit: "%" });
@@ -1430,19 +1431,7 @@ async function loadAllData(){
     STATE.usdKes = { value: 0, live: false };
   }
 
-  STATE.feedErrors = [];
-  if(!liveRate?.live) STATE.feedErrors.push("forex");
-  if(!mansaStocksRes.ok) STATE.feedErrors.push("equities");
-  updateLiveFeedBadge();
-
   STATE.macroExtended = await fetchMacroExtended();
-}
-
-function updateLiveFeedBadge(){
-  const badge = document.getElementById("liveFeedBadge");
-  if(badge){
-    badge.classList.toggle("hidden", STATE.feedErrors.length === 0);
-  }
 }
 
 /* ==========================================================================
@@ -2161,18 +2150,15 @@ function renderCorpActions(items){
   body.innerHTML = items.map(c => {
     const daysUntil = Math.ceil((new Date(c.date) - new Date()) / 86400000);
     const urgency = daysUntil <= 3 ? "text-[var(--down)]" : daysUntil <= 7 ? "text-[var(--text-mid)]" : "text-[var(--text-dim)]";
-    const statusCls = c.status === "Active" ? "bg-[rgba(239,83,80,0.15)] text-[var(--down)]" : "bg-[rgba(38,166,154,0.1)] text-[var(--up)]";
+    const isPast = daysUntil < 0;
     return `
       <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)]">
         <div class="flex items-center justify-between mb-1">
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-mono-data font-bold text-[var(--text-hi)]">${c.ticker}</span>
-            <span class="text-[9px] px-1.5 py-0.5 rounded ${statusCls} font-medium">${c.status}</span>
-          </div>
-          <span class="text-[9px] font-mono-data ${urgency}">${daysUntil > 0 ? daysUntil + "d" : "Today"}</span>
+          <span class="text-[10px] font-mono-data font-bold text-[var(--text-hi)]">${c.company}</span>
+          <span class="text-[9px] font-mono-data ${isPast ? 'text-[var(--text-dim)]' : urgency}">${isPast ? "Passed" : daysUntil === 0 ? "Today" : daysUntil + "d"}</span>
         </div>
-        <p class="text-[11px] text-[var(--text-hi)] font-medium">${c.action}</p>
-        <p class="text-[10px] text-[var(--text-dim)] mt-0.5">${c.detail} — ${c.date}</p>
+        <p class="text-[11px] text-[var(--text-hi)] font-medium">${c.event}</p>
+        <p class="text-[10px] text-[var(--text-dim)] mt-0.5">${c.details} — ${c.date}</p>
       </div>
     `;
   }).join("");
@@ -2523,7 +2509,7 @@ function initMacroIntelPage(){
 
   const latestCpi = wb?.cpi?.values?.length ? wb.cpi.values[wb.cpi.values.length - 1] : (cpiInd?.value ?? 3.8);
   const latestGdp = wb?.gdp?.values?.length ? wb.gdp.values[wb.gdp.values.length - 1] : (gdpInd?.value ?? 6.2);
-  const cbrVal = cbrInd?.value ?? 10.0;
+  const cbrVal = STATE.macroLive?.cbr ?? cbrInd?.value ?? 10.0;
   const bondVal = bondInd?.value ?? BOU_YIELDS.bond10Y.yield;
 
   document.getElementById("macro-kpi-cbr").textContent = cbrVal.toFixed(2) + "%";
@@ -2656,11 +2642,12 @@ function renderWBIndicators(){
   const latestPop = wb?.population?.length ? wb.population[wb.population.length - 1] : null;
   const popDisplay = latestPop ? (latestPop.value / 1e6).toFixed(1) + "M" : "48.6M";
   const popPeriod = latestPop?.date || "2025";
+  const liveCbr = STATE.macroLive?.cbr ?? 10.0;
 
   const indicators = [
     { label: "GDP Growth (annual %)", value: latestGdp.toFixed(1) + "%", period: "World Bank" },
     { label: "Inflation, consumer prices", value: latestCpi.toFixed(1) + "%", period: "World Bank" },
-    { label: "CBR (Central Bank Rate)", value: "10.00%", period: "Sep 2026" },
+    { label: "CBR (Central Bank Rate)", value: liveCbr.toFixed(2) + "%", period: STATE.macroLive?.cbr_period || "Mansa API" },
     { label: "USD/UGX Exchange Rate", value: STATE.usdUgx.value.toLocaleString(), period: "er-api.com" },
     { label: "Population (est.)", value: popDisplay, period: popPeriod },
     { label: "10Y Bond Yield", value: BOU_YIELDS.bond10Y.yield.toFixed(2) + "%", period: "BoU Auction" }

@@ -89,11 +89,11 @@ function getMacroExtended() {
 /* --- Corporate actions calendar (served securely from worker, not hardcoded in client) --- */
 function getCorpActions() {
   return [
-    { ticker: "MTNU", company: "MTN Uganda", action: "Interim Dividend", detail: "UGX 5.20 per share", date: "2026-09-19", status: "Upcoming" },
-    { ticker: "SBU", company: "Stanbic Bank Uganda", action: "Final Dividend", detail: "UGX 75.00 per share", date: "2026-09-26", status: "Upcoming" },
-    { ticker: "DFCU", company: "DFCU Bank", action: "AGM", detail: "Annual General Meeting", date: "2026-10-03", status: "Upcoming" },
-    { ticker: "UMEME", company: "Umeme Ltd", action: "Suspension", detail: "Trading halted — demerger pending", date: "2026-09-10", status: "Active" },
-    { ticker: "BATU", company: "BAT Uganda", action: "Book Closure", detail: "Final dividend cut-off", date: "2026-10-10", status: "Upcoming" }
+    { company: "MTN Uganda", event: "Interim Dividend", details: "UGX 5.20 per share — MTNU", date: "2026-09-19" },
+    { company: "Stanbic Bank Uganda", event: "Final Dividend", details: "UGX 75.00 per share — SBU", date: "2026-09-26" },
+    { company: "DFCU Bank", event: "AGM", details: "Annual General Meeting — DFCU", date: "2026-10-03" },
+    { company: "Umeme Ltd", event: "Trading Halt", details: "Demerger pending — UMEME", date: "2026-09-10" },
+    { company: "BAT Uganda", event: "Book Closure", details: "Final dividend cut-off — BATU", date: "2026-10-10" }
   ];
 }
 
