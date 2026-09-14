@@ -1958,8 +1958,8 @@ async function loadStockChart(ticker){
 
   // 3. Synthetic fallback
   const cfg = RANGE_CONFIG[STATE.activeRange] || RANGE_CONFIG["1M"];
-  const candles = generateCandles(ticker, stock.price, stock.base_vol, cfg.points, cfg.stepSeconds);
-  series.setData(candles);
+  const syntheticCandles = generateCandles(ticker, stock.price, stock.base_vol, cfg.points, cfg.stepSeconds);
+  series.setData(syntheticCandles);
   chart.timeScale().fitContent();
   removeLoading();
   return true;
