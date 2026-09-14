@@ -96,9 +96,9 @@ try{
   .badge-dot{ box-shadow: 0 0 0 3px rgba(255,255,255,0.04); }
 
   .logo-badge{
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -123,7 +123,7 @@ try{
 
   @keyframes pulse-green{
     0%,100%{ box-shadow: 0 0 0 0 rgba(38,166,154,0.5); }
-    50%{ box-shadow: 0 0 0 6px rgba(38,166,154,0); }
+    50%{ box-shadow: 0 0 0 8px rgba(38,166,154,0); }
   }
 
   @keyframes pulse-text{
@@ -167,27 +167,28 @@ try{
   </div>
 
   <!-- ============ HEADER BAR ============ -->
-  <header class="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[var(--line)] bg-[var(--bg-canvas)]">
-    <a href="/" class="flex items-center gap-2.5 no-underline shrink-0">
+  <header class="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[var(--line)] bg-[var(--bg-canvas)]">
+    <a href="#" onclick="document.querySelector('[data-category=equities]')?.click(); return false;" class="flex items-center gap-3 no-underline shrink-0">
       <div class="logo-badge">
         <img src="./a690d938-684a-490c-84c1-0f48a575eed1.png" alt="KM Terminal">
       </div>
-      <span class="font-bold tracking-tight text-[14px] sm:text-[15px] text-white">KM TERMINAL</span>
+      <span class="font-extrabold tracking-tight text-[22px] sm:text-[24px] text-white">KM TERMINAL</span>
       <span class="hidden sm:inline text-[10px] sm:text-[11px] text-[var(--text-dim)] font-mono-data">UG MARKETS</span>
     </a>
-    <nav class="flex items-center gap-3 sm:gap-4 xl:gap-5 mx-3 sm:mx-4 xl:mx-6 overflow-x-auto scrollbar-none">
-      <button data-category="forex" class="header-nav-link text-[11px] sm:text-[12px] xl:text-[13px] text-[var(--text-mid)] hover:text-white transition-colors font-semibold whitespace-nowrap">Forex</button>
-      <button data-category="bonds" class="header-nav-link text-[11px] sm:text-[12px] xl:text-[13px] text-[var(--text-mid)] hover:text-white transition-colors font-semibold whitespace-nowrap">Fixed Income</button>
-      <button data-category="macro" class="header-nav-link text-[11px] sm:text-[12px] xl:text-[13px] text-[var(--text-mid)] hover:text-white transition-colors font-semibold whitespace-nowrap">Macro</button>
-      <button data-category="investor" class="header-nav-link text-[11px] sm:text-[12px] xl:text-[13px] text-[var(--text-mid)] hover:text-white transition-colors font-semibold whitespace-nowrap">Investor Tools</button>
+    <nav class="flex items-center gap-4 sm:gap-5 xl:gap-6 mx-3 sm:mx-4 xl:mx-6 overflow-x-auto scrollbar-none">
+      <button data-category="equities" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Home</button>
+      <button data-category="forex" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Forex</button>
+      <button data-category="bonds" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Fixed Income</button>
+      <button data-category="macro" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Macro</button>
+      <button data-category="investor" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Investor Tools</button>
     </nav>
-    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-      <span class="text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-1 rounded border border-[var(--line)] text-[var(--text-mid)]">Live</span>
-      <span id="marketStatusBadge" class="hidden md:inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded font-medium font-mono-data">
-        <span id="statusDot" class="w-2 h-2 rounded-full"></span>
+    <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+      <span class="text-[13px] sm:text-[14px] px-2.5 sm:px-3 py-1.5 rounded border border-[var(--line)] text-[var(--text-mid)] font-bold">Live</span>
+      <span id="marketStatusBadge" class="hidden md:inline-flex items-center gap-2 text-[13px] sm:text-[14px] px-2.5 sm:px-3 py-1.5 rounded font-bold font-mono-data">
+        <span id="statusDot" class="w-3 h-3 rounded-full"></span>
         <span id="statusText"></span>
       </span>
-      <span id="clockOut" class="hidden md:inline text-[12px] font-mono-data text-[var(--text-mid)]"></span>
+      <span id="clockOut" class="hidden md:inline text-[13px] sm:text-[14px] font-mono-data font-bold text-[var(--text-mid)]"></span>
     </div>
   </header>
 
