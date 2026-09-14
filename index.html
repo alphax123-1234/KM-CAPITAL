@@ -1051,15 +1051,16 @@ async function loadJSON(path, baseline){
   }, baseline !== undefined ? baseline : null);
 }
 
-/* --- Exchange Rate: USD/UGX + USD/KES via er-api.com (public, no key) --- */
+/* --- Exchange Rate: USD/UGX + USD/KES via open.er-api.com (public, no key) --- */
 const FOREX_BASELINE = { value: 3720, change: 0, kes: null };
 
 async function fetchForex(){
   return cachedFetch("forex_erapi_v1", async () => {
-    const res = await fetch("https://.er-api.com/v1/latest?base=USD");
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
     if(!res.ok) throw new Error("forex " + res.status);
     const text = await res.text();
     const data = JSON.parse(text);
+    if(data.result !== "success") throw new Error("er-api result: " + data.result);
     const ugx = data?.rates?.UGX;
     const kes = data?.rates?.KES;
     if(!ugx) throw new Error("no UGX rate in response");
