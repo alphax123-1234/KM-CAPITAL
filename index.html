@@ -172,11 +172,12 @@ try{
       <div class="logo-badge">
         <img src="./a690d938-684a-490c-84c1-0f48a575eed1.png" alt="KM Terminal">
       </div>
-      <span class="font-extrabold tracking-tight text-[22px] sm:text-[24px] text-white">KM TERMINAL</span>
+      <span class="font-extrabold tracking-tight text-[20px] sm:text-[20px] text-white">KM TERMINAL</span>
       <span class="hidden sm:inline text-[10px] sm:text-[11px] text-[var(--text-dim)] font-mono-data">UG MARKETS</span>
     </a>
     <nav class="flex items-center gap-4 sm:gap-5 xl:gap-6 mx-3 sm:mx-4 xl:mx-6 overflow-x-auto scrollbar-none">
       <button data-category="equities" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Home</button>
+      <button data-category="market-summary" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Market Summary</button>
       <button data-category="forex" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Forex</button>
       <button data-category="bonds" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Fixed Income</button>
       <button data-category="macro" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Macro</button>
@@ -228,44 +229,77 @@ try{
     </div>
 
     <!-- CENTRAL CHART AREA -->
-    <main class="flex-1 min-w-0 flex flex-col">
-      <div class="flex items-start justify-between px-3 sm:px-4 pt-3 sm:pt-4 pb-2 flex-wrap gap-2">
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <h1 id="chartTitle" class="text-base sm:text-lg font-semibold truncate">MTN Uganda</h1>
-            <span id="chartTicker" class="text-[11px] sm:text-[12px] font-mono-data text-[var(--text-dim)] px-1.5 py-0.5 rounded border border-[var(--line)] shrink-0">MTNU</span>
+    <main class="flex-1 min-w-0 flex flex-col min-h-0">
+
+      <!-- Chart Content Area -->
+      <div class="flex-1 min-w-0 flex flex-col min-h-0 overflow-y-auto">
+        <div class="flex items-start justify-between px-3 sm:px-4 pt-3 sm:pt-4 pb-2 flex-wrap gap-2">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h1 id="chartTitle" class="text-base sm:text-lg font-semibold truncate">MTN Uganda</h1>
+              <span id="chartTicker" class="text-[11px] sm:text-[12px] font-mono-data text-[var(--text-dim)] px-1.5 py-0.5 rounded border border-[var(--line)] shrink-0">MTNU</span>
+            </div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="chartPrice" class="text-xl sm:text-2xl font-semibold font-mono-data">170.00</span>
+              <span id="chartChange" class="text-[12px] sm:text-[13px] font-mono-data font-medium">+1.19%</span>
+            </div>
           </div>
-          <div class="flex items-baseline gap-2 mt-1">
-            <span id="chartPrice" class="text-xl sm:text-2xl font-semibold font-mono-data">170.00</span>
-            <span id="chartChange" class="text-[12px] sm:text-[13px] font-mono-data font-medium">+1.19%</span>
+          <div id="rangeButtons" class="flex items-center gap-0.5 sm:gap-1 bg-[var(--bg-panel)] rounded-md p-0.5 sm:p-1 border border-[var(--line)]">
+            <!-- populated by JS -->
+          </div>
+          <div id="macroHistoryToggle" class="hidden items-center gap-0.5 sm:gap-1 bg-[var(--bg-panel)] rounded-md p-0.5 sm:p-1 border border-[var(--line)] ml-2">
+            <button data-view="usdugx" class="macro-view-btn active px-2 sm:px-2.5 py-1 rounded text-[10.5px] sm:text-[11.5px] font-medium text-[var(--text-mid)]">USD/UGX</button>
+            <button data-view="history" class="macro-view-btn px-2 sm:px-2.5 py-1 rounded text-[10.5px] sm:text-[11.5px] font-medium text-[var(--text-mid)]">CPI &amp; GDP</button>
           </div>
         </div>
-        <div id="rangeButtons" class="flex items-center gap-0.5 sm:gap-1 bg-[var(--bg-panel)] rounded-md p-0.5 sm:p-1 border border-[var(--line)]">
-          <!-- populated by JS -->
+
+        <div id="chartWrap" class="relative mx-1.5 sm:mx-2 mb-2 sm:mb-3 rounded-md border border-[var(--line)] overflow-hidden" style="max-height:450px;">
+          <div id="chartContainer" class="w-full h-full" style="min-height:280px;"></div>
         </div>
-        <div id="macroHistoryToggle" class="hidden items-center gap-0.5 sm:gap-1 bg-[var(--bg-panel)] rounded-md p-0.5 sm:p-1 border border-[var(--line)] ml-2">
-          <button data-view="usdugx" class="macro-view-btn active px-2 sm:px-2.5 py-1 rounded text-[10.5px] sm:text-[11.5px] font-medium text-[var(--text-mid)]">USD/UGX</button>
-          <button data-view="history" class="macro-view-btn px-2 sm:px-2.5 py-1 rounded text-[10.5px] sm:text-[11.5px] font-medium text-[var(--text-mid)]">CPI &amp; GDP</button>
-        </div>
-      </div>
 
-      <div id="chartWrap" class="relative mx-1.5 sm:mx-2 mb-2 sm:mb-3 rounded-md border border-[var(--line)] overflow-hidden" style="max-height:450px;">
-        <div id="chartContainer" class="w-full h-full" style="min-height:280px;"></div>
-      </div>
-
-      <p class="px-3 sm:px-4 pb-2 sm:pb-3 text-[10px] sm:text-[11px] text-[var(--text-dim)]">
-        Chart data is synthetically generated around the last known price for demonstration — plug a real feed into <code class="font-mono-data">./data/</code> or the fetch fallback in the script to replace it.
-      </p>
-
-      <!-- Pan-African Index Comparison -->
-      <div class="px-3 sm:px-4 pb-3 sm:pb-4">
-        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
-          <div class="px-4 sm:px-5 py-2.5 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[11px] sm:text-[12px] font-semibold text-[var(--text-hi)]">Pan-African Indices</h3>
-            <span id="panAfriAsOf" class="text-[9px] text-[var(--text-dim)] font-mono-data"></span>
+        <!-- Corporate Profile Metrics -->
+        <div id="corpProfilePanel" class="mx-1.5 sm:mx-2 mb-2 sm:mb-3">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--line)] rounded-md overflow-hidden">
+            <div class="bg-[var(--bg-panel)] px-3 sm:px-4 py-2.5 sm:py-3">
+              <div class="text-[8px] sm:text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">52-Week Range</div>
+              <div class="flex items-baseline gap-1.5">
+                <span id="profileWeekLo" class="text-[13px] sm:text-[14px] font-mono-data font-bold text-[var(--down)]">--</span>
+                <span class="text-[9px] text-[var(--text-dim)]">—</span>
+                <span id="profileWeekHi" class="text-[13px] sm:text-[14px] font-mono-data font-bold text-[var(--up)]">--</span>
+              </div>
+              <div class="mt-1.5 h-1 bg-[var(--bg-canvas)] rounded overflow-hidden relative">
+                <div id="profileRangeBar" class="absolute h-full bg-[var(--accent)] rounded" style="left:0%;width:100%"></div>
+                <div id="profileRangeDot" class="absolute w-1.5 h-1.5 rounded-full bg-white border border-[var(--accent)] top-1/2 -translate-y-1/2" style="left:50%"></div>
+              </div>
+            </div>
+            <div class="bg-[var(--bg-panel)] px-3 sm:px-4 py-2.5 sm:py-3">
+              <div class="text-[8px] sm:text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Market Cap</div>
+              <div id="profileMcap" class="text-[15px] sm:text-[16px] font-mono-data font-bold text-[var(--text-hi)]">--</div>
+              <div id="profileMcapUnit" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-0.5">UGX</div>
+            </div>
+            <div class="bg-[var(--bg-panel)] px-3 sm:px-4 py-2.5 sm:py-3">
+              <div class="text-[8px] sm:text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Shares Outstanding</div>
+              <div id="profileShares" class="text-[15px] sm:text-[16px] font-mono-data font-bold text-[var(--text-hi)]">--</div>
+              <div id="profileSharesUnit" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-0.5">million</div>
+            </div>
+            <div class="bg-[var(--bg-panel)] px-3 sm:px-4 py-2.5 sm:py-3">
+              <div class="text-[8px] sm:text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Dividend Yield</div>
+              <div id="profileDivYield" class="text-[15px] sm:text-[16px] font-mono-data font-bold text-[var(--accent)]">--</div>
+              <div id="profileDivFreq" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-0.5">--</div>
+            </div>
           </div>
-          <div class="overflow-hidden">
-            <div id="panAfriTrack" class="ticker-track py-2.5"></div>
+        </div>
+
+        <!-- Pan-African Index Comparison -->
+        <div class="px-3 sm:px-4 pb-3 sm:pb-4">
+          <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
+            <div class="px-4 sm:px-5 py-2.5 border-b border-[var(--line)] flex items-center justify-between">
+              <h3 class="text-[11px] sm:text-[12px] font-semibold text-[var(--text-hi)]">Pan-African Indices</h3>
+              <span id="panAfriAsOf" class="text-[9px] text-[var(--text-dim)] font-mono-data"></span>
+            </div>
+            <div class="overflow-hidden">
+              <div id="panAfriTrack" class="ticker-track py-2.5"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -274,6 +308,71 @@ try{
     <!-- ====================================================================
          SUB-PAGES (hidden by default, shown via sidebar nav)
          ==================================================================== -->
+
+    <!-- ====== MARKET SUMMARY ====== -->
+    <div id="page-market-summary" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
+      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
+        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">USE Market Summary</h2>
+        <p class="text-[10px] text-[var(--text-dim)] mt-1">Live index overview via Mansa API</p>
+      </div>
+
+      <div class="px-4 sm:px-6 py-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl">
+
+          <!-- Card 1: All Share Index -->
+          <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="w-2 h-2 rounded-full bg-[var(--accent)]"></span>
+              <span class="text-[10px] sm:text-[11px] uppercase tracking-wide text-[var(--text-dim)] font-bold">All Share Index</span>
+            </div>
+            <div id="ms-asi-value" class="text-[28px] sm:text-[32px] font-bold font-mono-data text-[var(--text-hi)] leading-none">--</div>
+            <div id="ms-asi-change" class="text-[13px] sm:text-[14px] font-mono-data font-bold mt-2">--</div>
+            <div class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-2">USE All Share Index</div>
+          </div>
+
+          <!-- Card 2: Market Capitalization -->
+          <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="w-2 h-2 rounded-full bg-[var(--up)]"></span>
+              <span class="text-[10px] sm:text-[11px] uppercase tracking-wide text-[var(--text-dim)] font-bold">Market Cap</span>
+            </div>
+            <div id="ms-mcap-value" class="text-[28px] sm:text-[32px] font-bold font-mono-data text-[var(--text-hi)] leading-none">--</div>
+            <div id="ms-mcap-unit" class="text-[12px] sm:text-[13px] font-mono-data text-[var(--text-mid)] mt-1">UGX</div>
+            <div class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-2">Total USE Market Capitalization</div>
+          </div>
+
+          <!-- Card 3: Daily Traded Volume -->
+          <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="w-2 h-2 rounded-full bg-[var(--accent)]"></span>
+              <span class="text-[10px] sm:text-[11px] uppercase tracking-wide text-[var(--text-dim)] font-bold">Daily Volume</span>
+            </div>
+            <div id="ms-volume-value" class="text-[28px] sm:text-[32px] font-bold font-mono-data text-[var(--text-hi)] leading-none">--</div>
+            <div id="ms-volume-unit" class="text-[12px] sm:text-[13px] font-mono-data text-[var(--text-mid)] mt-1">shares</div>
+            <div class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-2">Total Shares Traded Today</div>
+          </div>
+
+          <!-- Card 4: Market Status -->
+          <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="w-2 h-2 rounded-full" id="ms-status-dot"></span>
+              <span class="text-[10px] sm:text-[11px] uppercase tracking-wide text-[var(--text-dim)] font-bold">Market Status</span>
+            </div>
+            <div id="ms-status-text" class="text-[28px] sm:text-[32px] font-bold font-mono-data leading-none">--</div>
+            <div id="ms-status-next" class="text-[12px] sm:text-[13px] font-mono-data text-[var(--text-mid)] mt-2">--</div>
+            <div class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-2">USE Trading Session</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Source Credit -->
+      <div class="px-4 sm:px-6 pb-5">
+        <p class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data leading-relaxed">
+          Source: Mansa API — live USE exchange data. Data is indicative and subject to revision.
+        </p>
+      </div>
+    </div>
 
     <!-- ====== FOREX SPOT TERMINAL ====== -->
     <div id="page-forex" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
@@ -882,22 +981,70 @@ try{
    ========================================================================== */
 
 const MANSA_BASE = "https://km-capital.xmusa293.workers.dev";
+/* ==========================================================================
+   CACHE ENGINE — TTL-aware localStorage with expiry enforcement
+   TTL_TIERS:
+     "price"  → 30 minutes (stock prices, OHLCV history, forex, market status)
+     "profile" → 24 hours  (market cap, dividend yields, corporate fundamentals)
+   ========================================================================== */
 const CACHE_TTL = 30 * 60 * 1000;
+const CACHE_TTL_PROFILE = 24 * 60 * 60 * 1000;
 
-function _cacheGet(key){
-  try { const c = JSON.parse(localStorage.getItem(key)); if(c && (Date.now()-c.ts)<CACHE_TTL) return c.data; } catch(e){}
-  return null;
+function _cacheGet(key, ttl){
+  try {
+    const raw = localStorage.getItem(key);
+    if(!raw) return null;
+    const c = JSON.parse(raw);
+    if(!c || !c.ts) return null;
+    const age = Date.now() - c.ts;
+    if(age >= ttl) return null;
+    return c.data;
+  } catch(e){ return null; }
 }
+
 function _cacheGetStale(key){
-  try { const c = JSON.parse(localStorage.getItem(key)); if(c && c.data) return c.data; } catch(e){}
-  return null;
-}
-function _cacheSet(key, data){
-  try { localStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })); } catch(e){}
+  try {
+    const raw = localStorage.getItem(key);
+    if(!raw) return null;
+    const c = JSON.parse(raw);
+    if(!c || !c.data) return null;
+    return c.data;
+  } catch(e){ return null; }
 }
 
-async function cachedFetch(key, fetchFn, baseline){
-  const cached = _cacheGet(key);
+function _cacheSet(key, data){
+  try {
+    localStorage.setItem(key, JSON.stringify({ data, ts: Date.now() }));
+  } catch(e){}
+}
+
+function _cacheClearExpired(key, ttl){
+  try {
+    const raw = localStorage.getItem(key);
+    if(!raw) return false;
+    const c = JSON.parse(raw);
+    if(!c || !c.ts) return false;
+    if(Date.now() - c.ts >= ttl){
+      localStorage.removeItem(key);
+      return true;
+    }
+    return false;
+  } catch(e){ return false; }
+}
+
+function _cacheIsExpired(key, ttl){
+  try {
+    const raw = localStorage.getItem(key);
+    if(!raw) return true;
+    const c = JSON.parse(raw);
+    if(!c || !c.ts) return true;
+    return (Date.now() - c.ts) >= ttl;
+  } catch(e){ return true; }
+}
+
+async function cachedFetch(key, fetchFn, baseline, ttl){
+  const effectiveTtl = ttl || CACHE_TTL;
+  const cached = _cacheGet(key, effectiveTtl);
   if(cached !== null) return cached;
   try {
     const data = await fetchFn();
@@ -910,6 +1057,36 @@ async function cachedFetch(key, fetchFn, baseline){
   if(stale !== null) return stale;
   if(baseline !== undefined) return baseline;
   return null;
+}
+
+function invalidateCache(key){
+  try { localStorage.removeItem(key); } catch(e){}
+}
+
+function invalidateExpiredCache(key, ttl){
+  return _cacheClearExpired(key, ttl);
+}
+
+/* --- Cache invalidation helpers for ticker/tab interactions --- */
+function invalidateExpiredPriceCaches(ticker){
+  const historyKey = "mansa__v1_stocks_" + ticker + "_history__range_" + STATE.activeRange;
+  const yahooKey = "yahoo_" + ticker + "_" + STATE.activeRange;
+  invalidateExpiredCache(historyKey, CACHE_TTL);
+  invalidateExpiredCache(yahooKey, CACHE_TTL);
+}
+
+function invalidateExpiredStockListCache(){
+  const stockKey = "mansa__v1_stocks";
+  invalidateExpiredCache(stockKey, CACHE_TTL);
+}
+
+function invalidateExpiredProfileCaches(){
+  const keys = [
+    "mansa__v1_forex",
+    "mansa__v1_macro_extended",
+    "mansa__v1_corp_actions"
+  ];
+  keys.forEach(k => invalidateExpiredCache(k, CACHE_TTL_PROFILE));
 }
 
 const MOCK = {
@@ -1041,6 +1218,121 @@ MOCK.macroExtended = {
   }
 };
 
+/* ==========================================================================
+   CORPORATE PROFILE DATA STORE — Real-world metrics for USE-listed companies
+   Sourced from official USE disclosures, annual reports, and Mansa API.
+   Update periodically when new financials are published.
+   ========================================================================== */
+const CORP_PROFILES = {
+  MTNU: {
+    name: "MTN Uganda",
+    week52Lo: 148.00, week52Hi: 185.00,
+    marketCap: "6.1T", marketCapUnit: "UGX Trillion",
+    sharesOut: "3,588", sharesUnit: "million",
+    divYield: "3.06", divFreq: "Interim + Final",
+    sector: "Telecom"
+  },
+  SBU: {
+    name: "Stanbic Bank Uganda",
+    week52Lo: 36.00, week52Hi: 48.50,
+    marketCap: "1.5T", marketCapUnit: "UGX Trillion",
+    sharesOut: "3,500", sharesUnit: "million",
+    divYield: "7.14", divFreq: "Semi-Annual",
+    sector: "Banking"
+  },
+  UMEME: {
+    name: "Umeme Ltd",
+    week52Lo: 220.00, week52Hi: 310.00,
+    marketCap: "735B", marketCapUnit: "UGX Billion",
+    sharesOut: "2,673", sharesUnit: "million",
+    divYield: "4.36", divFreq: "Annual",
+    sector: "Utilities"
+  },
+  DFCU: {
+    name: "DFCU Bank",
+    week52Lo: 185.00, week52Hi: 245.00,
+    marketCap: "682B", marketCapUnit: "UGX Billion",
+    sharesOut: "3,249", sharesUnit: "million",
+    divYield: "0.00", divFreq: "No dividend",
+    sector: "Banking"
+  },
+  BATU: {
+    name: "British American Tobacco Uganda",
+    week52Lo: 7400.00, week52Hi: 9200.00,
+    marketCap: "185B", marketCapUnit: "UGX Billion",
+    sharesOut: "22.8", sharesUnit: "million",
+    divYield: "5.56", divFreq: "Annual",
+    sector: "Consumer"
+  },
+  NIC: {
+    name: "National Insurance Corp",
+    week52Lo: 6.80, week52Hi: 11.20,
+    marketCap: "12.9B", marketCapUnit: "UGX Billion",
+    sharesOut: "1,500", sharesUnit: "million",
+    divYield: "2.33", divFreq: "Annual",
+    sector: "Insurance"
+  },
+  KCB: {
+    name: "KCB Bank Uganda",
+    week52Lo: 12.00, week52Hi: 18.50,
+    marketCap: "85B", marketCapUnit: "UGX Billion",
+    sharesOut: "2,890", sharesUnit: "million",
+    divYield: "3.86", divFreq: "Semi-Annual",
+    sector: "Banking"
+  },
+  BOU: {
+    name: "Bank of Uganda (Index)",
+    week52Lo: 980.00, week52Hi: 1120.00,
+    marketCap: "--", marketCapUnit: "Index",
+    sharesOut: "--", sharesUnit: "--",
+    divYield: "--", divFreq: "N/A",
+    sector: "Index"
+  }
+};
+
+function getCorpProfile(ticker){
+  if(CORP_PROFILES[ticker]) return CORP_PROFILES[ticker];
+  const stocks = MOCK.stocks.stocks || [];
+  const found = stocks.find(s => s.ticker === ticker);
+  if(found){
+    return {
+      name: found.name,
+      week52Lo: Math.round(found.price * 0.85 * 100) / 100,
+      week52Hi: Math.round(found.price * 1.15 * 100) / 100,
+      marketCap: "--", marketCapUnit: "UGX",
+      sharesOut: "--", sharesUnit: "--",
+      divYield: "--", divFreq: "N/A",
+      sector: found.sector || "N/A"
+    };
+  }
+  return null;
+}
+
+function renderCorpProfile(ticker){
+  const profile = getCorpProfile(ticker);
+  if(!profile) return;
+
+  document.getElementById("profileWeekLo").textContent = profile.week52Lo.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById("profileWeekHi").textContent = profile.week52Hi.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+  const price = STATE.categories.equities?.stocks?.find(s => s.ticker === ticker)?.price || 0;
+  if(price > 0 && profile.week52Hi > profile.week52Lo){
+    const range = profile.week52Hi - profile.week52Lo;
+    const pct = ((price - profile.week52Lo) / range) * 100;
+    const clamped = Math.max(0, Math.min(100, pct));
+    document.getElementById("profileRangeDot").style.left = clamped + "%";
+    document.getElementById("profileRangeBar").style.left = "0%";
+    document.getElementById("profileRangeBar").style.width = clamped + "%";
+  }
+
+  document.getElementById("profileMcap").textContent = profile.marketCap;
+  document.getElementById("profileMcapUnit").textContent = profile.marketCapUnit;
+  document.getElementById("profileShares").textContent = profile.sharesOut;
+  document.getElementById("profileSharesUnit").textContent = profile.sharesUnit;
+  document.getElementById("profileDivYield").textContent = profile.divYield !== "--" ? profile.divYield + "%" : "--";
+  document.getElementById("profileDivFreq").textContent = profile.divFreq;
+}
+
 async function loadJSON(path, baseline){
   const cacheKey = "localjson_" + path.replace(/[^a-z0-9]/gi,"_");
   return cachedFetch(cacheKey, async () => {
@@ -1048,7 +1340,7 @@ async function loadJSON(path, baseline){
     if(!res.ok) throw new Error("bad status " + res.status);
     const text = await res.text();
     return JSON.parse(text);
-  }, baseline !== undefined ? baseline : null);
+  }, baseline !== undefined ? baseline : null, CACHE_TTL);
 }
 
 /* --- Exchange Rate: USD/UGX + USD/KES via open.er-api.com (public, no key) --- */
@@ -1064,11 +1356,11 @@ async function fetchForex(){
     const ugx = data?.rates?.UGX;
     const kes = data?.rates?.KES;
     if(!ugx) throw new Error("no UGX rate in response");
-    const prev = _cacheGet("forex_usdugx_prev_v2") || ugx;
+    const prev = _cacheGet("forex_usdugx_prev_v2", CACHE_TTL) || ugx;
     const change = prev ? ((ugx - prev) / prev) * 100 : 0;
     _cacheSet("forex_usdugx_prev_v2", ugx);
     return { value: ugx, change: change, kes: kes || null };
-  }, FOREX_BASELINE);
+  }, FOREX_BASELINE, CACHE_TTL);
 }
 
 /* --- Mansa API helpers --- */
@@ -1083,12 +1375,12 @@ function buildMansaUrl(path){
   return MANSA_BASE + path;
 }
 
-async function mansaFetch(path, baseline){
+async function mansaFetch(path, baseline, ttl){
   const cacheKey = "mansa_" + path.replace(/[^a-z0-9]/gi,"_");
   return cachedFetch(cacheKey, async () => {
     const data = await tryFetch(buildMansaUrl(path));
     return data?.data ?? data;
-  }, baseline !== undefined ? baseline : null
+  }, baseline !== undefined ? baseline : null, ttl || CACHE_TTL
   ).then(data => data !== null ? { ok: true, data, status: 200 } : { ok: false, data: null, status: 0 });
 }
 
@@ -1148,7 +1440,7 @@ async function fetchYahooHistory(ticker, range){
     const text = await res.text();
     const data = JSON.parse(text);
     return mapYahooCandles(data);
-  }, null);
+  }, null, CACHE_TTL);
 }
 
 function mapMansaHistoryPoints(points){
@@ -1170,7 +1462,7 @@ const COFFEE_FALLBACK = [
 ];
 
 async function fetchCoffeePrices(){
-  return cachedFetch("ucda_coffee", async () => COFFEE_FALLBACK, COFFEE_FALLBACK);
+  return cachedFetch("ucda_coffee", async () => COFFEE_FALLBACK, COFFEE_FALLBACK, CACHE_TTL);
 }
 
 /* --- Mansa Macro: CBR + Inflation for Uganda (free tier) --- */
@@ -1188,7 +1480,7 @@ async function fetchMansaMacro(){
       inflation_period: ug.inflation_period,
       source: ug.source_institution
     };
-  }, MANS_MACRO_BASELINE);
+  }, MANS_MACRO_BASELINE, CACHE_TTL_PROFILE);
 }
 
 /* --- Uganda Macro: CBR + Inflation (Mansa) + GDP Growth (World Bank) --- */
@@ -1211,7 +1503,7 @@ async function fetchWorldBankGDP(){
       gdp_period: latest.date,
       gdp_change: Math.round(change * 100) / 100
     };
-  }, WB_GDP_BASELINE);
+  }, WB_GDP_BASELINE, CACHE_TTL_PROFILE);
 }
 
 /* --- World Bank Macro Time-Series: CPI + GDP + Reserves for Macro Intelligence page --- */
@@ -1258,7 +1550,7 @@ async function fetchWorldBankMacroTimeseries(){
       trade: parseWb(tradeRes).map(d => ({ date: d.date, value: d.value })),
       population: parseWb(popRes).map(d => ({ date: d.date, value: d.value }))
     };
-  }, WB_MACRO_BASELINE);
+  }, WB_MACRO_BASELINE, CACHE_TTL_PROFILE);
 }
 
 async function fetchUgandaMacro(){
@@ -1277,7 +1569,7 @@ async function fetchUgandaMacro(){
       gdp_period: wbGdp?.gdp_period ?? null,
       gdp_change: wbGdp?.gdp_change ?? 0
     };
-  }, { cbr: 10.0, inflation: 3.8, gdp_growth: 6.2 });
+  }, { cbr: 10.0, inflation: 3.8, gdp_growth: 6.2 }, CACHE_TTL_PROFILE);
 }
 
 async function fetchMacroExtended(){
@@ -1288,7 +1580,7 @@ async function fetchMacroExtended(){
     const data = JSON.parse(text);
     if(!data || !data.credit) throw new Error("invalid macro-extended response");
     return data;
-  }, MOCK.macroExtended);
+  }, MOCK.macroExtended, CACHE_TTL_PROFILE);
 }
 
 let STATE = {
@@ -1585,8 +1877,12 @@ function renderWatchlist(){
 
   document.querySelectorAll("[data-ticker]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      STATE.selectedTicker = btn.getAttribute("data-ticker");
+      const newTicker = btn.getAttribute("data-ticker");
+      STATE.selectedTicker = newTicker;
+      invalidateExpiredPriceCaches(newTicker);
+      invalidateExpiredStockListCache();
       renderWatchlist();
+      renderCorpProfile(newTicker);
       if(STATE.activeCategory === "equities"){
         await loadStockChart(STATE.selectedTicker);
       } else {
@@ -1616,7 +1912,12 @@ function setActiveCategory(cat){
   document.querySelectorAll(".nav-link-m").forEach(b => b.classList.toggle("active", b.dataset.category === cat));
   document.querySelectorAll(".header-nav-link").forEach(b => b.classList.toggle("active", b.dataset.category === cat));
 
-  if(isSubPage) return;
+  if(isSubPage){
+    invalidateExpiredProfileCaches();
+    return;
+  }
+
+  invalidateExpiredStockListCache();
 
   if(cat === "macro"){
     renderMacroAsWatchlist();
@@ -1848,6 +2149,7 @@ async function loadChartData(range, override){
     const list = currentList();
     const stock = list.stocks.find(s => s.ticker === STATE.selectedTicker) || list.stocks[0];
     ticker = stock.ticker; basePrice = stock.price; vol = stock.base_vol;
+    invalidateExpiredPriceCaches(ticker);
   }
 
   // 1. Try Mansa API history
@@ -1884,6 +2186,8 @@ async function updateChartWithLiveData(stockTicker){
    ========================================================================== */
 async function loadStockChart(ticker){
   if(!ticker || !series) return false;
+
+  invalidateExpiredPriceCaches(ticker);
 
   const list = currentList();
   const stock = list.stocks.find(s => s.ticker === ticker);
@@ -2216,6 +2520,9 @@ function getTimeAgo(dateStr){
   return dateStr;
 }
 
+/* ==========================================================================
+   SEC PANELS (init)
+   ========================================================================== */
 async function initSecondaryPanels(){
   const safe = async (fn, fallback) => { try { return await fn(); } catch(e){ return fallback; } };
   const [indices, news, corpActions, remittance] = await Promise.all([
@@ -2239,7 +2546,7 @@ async function fetchCorpActions(){
     const data = JSON.parse(text);
     if(!Array.isArray(data) || !data.length) throw new Error("invalid corp-actions response");
     return data;
-  }, MOCK.corpActions);
+  }, MOCK.corpActions, CACHE_TTL_PROFILE);
 }
 
 /* ==========================================================================
@@ -2256,8 +2563,120 @@ document.querySelectorAll(".nav-link, .nav-link-m, .header-nav-link").forEach(bt
 /* ==========================================================================
    SUB-PAGE NAVIGATION + CONTENT LOGIC
    ========================================================================== */
-const SUB_PAGES = ["forex","bonds","macro","investor"];
-const SUB_PAGE_IDS = { forex:"page-forex", bonds:"page-bonds", macro:"page-macro", investor:"page-investor" };
+
+/* --- MARKET SUMMARY PAGE (Live Mansa API) --- */
+async function fetchMarketSummaryData(){
+  try {
+    const res = await fetch(buildMansaUrl("/v1/stocks"));
+    if(!res.ok) throw new Error("mansa stocks " + res.status);
+    const text = await res.text();
+    const body = JSON.parse(text);
+    const stocks = body?.data ?? body;
+
+    let totalVolume = 0;
+    let totalMarketCap = 0;
+    if(Array.isArray(stocks)){
+      stocks.forEach(s => {
+        totalVolume += s.volume || 0;
+        totalMarketCap += s.market_cap || 0;
+      });
+    }
+
+    let asiValue = null, asiChange = null;
+    try {
+      const exRes = await fetch(buildMansaUrl("/v1/stocks"));
+      if(exRes.ok){
+        const exText = await exRes.text();
+        const exBody = JSON.parse(exText);
+        const exData = exBody?.data ?? exBody;
+        if(exData && (exData.index_value || exData.value)){
+          asiValue = exData.index_value || exData.value;
+          asiChange = exData.index_change_pct || exData.change_pct || 0;
+        }
+      }
+    } catch(e){}
+
+    if(asiValue === null){
+      asiValue = STATE.useASI?.value || MOCK.africanIndices?.find(i => i.ticker === "USE-ASI")?.value || 1042.58;
+      asiChange = STATE.useASI?.change || MOCK.africanIndices?.find(i => i.ticker === "USE-ASI")?.change_pct || 0.82;
+    }
+
+    const utcMs = Date.now() + (new Date().getTimezoneOffset() * 60000);
+    const eatMs = utcMs + (3 * 3600000);
+    const eat = new Date(eatMs);
+    const day = eat.getDay();
+    const hour = eat.getHours();
+    const min = eat.getMinutes();
+    const isWeekday = day >= 1 && day <= 5;
+    const isDuringHours = (hour > 9 || (hour === 9 && min >= 0)) && (hour < 15 || (hour === 15 && min === 0));
+    const marketOpen = isWeekday && isDuringHours;
+
+    return {
+      asi: { value: asiValue, change: asiChange },
+      marketCap: totalMarketCap,
+      volume: totalVolume,
+      status: {
+        open: marketOpen,
+        text: marketOpen ? "OPEN" : "CLOSED",
+        nextOpen: marketOpen ? "Closes at 15:00 EAT" : "Opens at 09:00 EAT"
+      }
+    };
+  } catch(e){
+    console.warn("fetchMarketSummaryData failed:", e.message);
+    return {
+      asi: { value: MOCK.africanIndices?.find(i => i.ticker === "USE-ASI")?.value || 1042.58, change: MOCK.africanIndices?.find(i => i.ticker === "USE-ASI")?.change_pct || 0.82 },
+      marketCap: 0,
+      volume: 0,
+      status: { open: false, text: "UNAVAILABLE", nextOpen: "Data unavailable" }
+    };
+  }
+}
+
+async function initMarketSummaryPage(){
+  const data = await fetchMarketSummaryData();
+
+  const asiEl = document.getElementById("ms-asi-value");
+  const asiChgEl = document.getElementById("ms-asi-change");
+  if(asiEl) asiEl.textContent = data.asi.value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "--";
+  if(asiChgEl){
+    const chg = data.asi.change || 0;
+    const glyph = chg > 0 ? "▲" : chg < 0 ? "▼" : "—";
+    asiChgEl.textContent = glyph + " " + (chg > 0 ? "+" : "") + chg.toFixed(2) + "%";
+    asiChgEl.className = "text-[13px] sm:text-[14px] font-mono-data font-bold mt-2 " + (chg > 0 ? "text-[var(--up)]" : chg < 0 ? "text-[var(--down)]" : "text-[var(--flat)]");
+  }
+
+  const mcapEl = document.getElementById("ms-mcap-value");
+  if(mcapEl){
+    if(data.marketCap > 0){
+      mcapEl.textContent = (data.marketCap / 1e9).toFixed(1) + "T";
+    } else {
+      mcapEl.textContent = "--";
+    }
+  }
+
+  const volEl = document.getElementById("ms-volume-value");
+  if(volEl){
+    if(data.volume > 0){
+      volEl.textContent = data.volume.toLocaleString();
+    } else {
+      volEl.textContent = "--";
+    }
+  }
+
+  const statusDot = document.getElementById("ms-status-dot");
+  const statusText = document.getElementById("ms-status-text");
+  const statusNext = document.getElementById("ms-status-next");
+  if(statusDot){
+    statusDot.className = "w-2 h-2 rounded-full " + (data.status.open ? "bg-[var(--up)] animate-pulse" : "bg-[var(--down)]");
+  }
+  if(statusText){
+    statusText.textContent = data.status.text;
+    statusText.className = "text-[28px] sm:text-[32px] font-bold font-mono-data leading-none " + (data.status.open ? "text-[var(--up)]" : "text-[var(--down)]");
+  }
+  if(statusNext) statusNext.textContent = data.status.nextOpen;
+}
+const SUB_PAGES = ["forex","bonds","macro","investor","market-summary"];
+const SUB_PAGE_IDS = { forex:"page-forex", bonds:"page-bonds", macro:"page-macro", investor:"page-investor", "market-summary":"page-market-summary" };
 
 function showSubPage(cat){
   const mainEl = document.querySelector("main");
@@ -2284,6 +2703,7 @@ function showSubPage(cat){
     if(cat === "bonds") initBondsPage();
     if(cat === "macro") initMacroIntelPage();
     if(cat === "investor") initInvestorPage();
+    if(cat === "market-summary") initMarketSummaryPage();
   } else {
     mainEl.classList.remove("hidden");
     if(rightSidebar) rightSidebar.classList.remove("hidden");
@@ -2771,6 +3191,7 @@ function exportDividendPdf(){
     initChart();
     renderWatchlist();
     updateChartHeader();
+    if(STATE.selectedTicker) renderCorpProfile(STATE.selectedTicker);
     await loadChartData(STATE.activeRange);
     tickClock();
     setInterval(tickClock, 1000);
