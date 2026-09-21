@@ -52,6 +52,9 @@ try{
     --down:      #ef5350;
     --flat:      #6b7684;
     --accent:    #4c8dff;
+    --fluid-px:  clamp(0.5rem, 2vw, 1.5rem);
+    --fluid-py:  clamp(0.5rem, 1.5vw, 1rem);
+    --fluid-gap: clamp(0.25rem, 1vw, 0.75rem);
   }
   html,body{ background:var(--bg-canvas); color:var(--text-hi); font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif; }
   .font-mono-data{ font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace; }
@@ -95,9 +98,10 @@ try{
 
   .badge-dot{ box-shadow: 0 0 0 3px rgba(255,255,255,0.04); }
 
+  /* === FLUID LOGO === */
   .logo-badge{
-    width: 45px;
-    height: 45px;
+    width: clamp(28px, 4vw, 48px);
+    height: clamp(28px, 4vw, 48px);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -138,6 +142,15 @@ try{
   #newsWireBody::-webkit-scrollbar-thumb:hover,
   #corpActionsBody::-webkit-scrollbar-thumb:hover{ background:#2a2a2a; }
 
+  .bou-wire-container{ max-height: clamp(160px, 30vh, 320px); overflow-y:auto; }
+  .bou-wire-container::-webkit-scrollbar{ width:4px; }
+  .bou-wire-container::-webkit-scrollbar-track{ background:transparent; }
+  .bou-wire-container::-webkit-scrollbar-thumb{ background:#1a1a1a; border-radius:4px; }
+  .bou-wire-container::-webkit-scrollbar-thumb:hover{ background:#2a2a2a; }
+  .bou-wire-item{ border-bottom:1px solid var(--line); transition: background-color .12s ease; }
+  .bou-wire-item:last-child{ border-bottom:none; }
+  .bou-wire-item:hover{ background:rgba(255,255,255,0.02); }
+
   [id^="page-"]{ min-height:0; }
   [id^="page-"]::-webkit-scrollbar{ width:4px; }
   [id^="page-"]::-webkit-scrollbar-thumb{ background:#1a1a1a; border-radius:4px; }
@@ -145,15 +158,102 @@ try{
 
   select option{ background:#0a0a0a; color:#e6ebf2; }
 
-  @media (max-width: 640px) {
-    .ticker-track{ animation-duration: 25s; }
-    #chartWrap{ max-height: 350px !important; }
-    #chartContainer{ min-height: 200px !important; }
+  /* ================================================================
+     FLUID RESPONSIVENESS — adapts to ANY screen size
+     Uses clamp(), min(), max(), dvh, vw for smooth scaling
+     ================================================================ */
+
+  /* === FLUID SIDEBARS === */
+  .sidebar-left{
+    width: clamp(130px, 16vw, 200px);
+    min-width: 130px;
+  }
+  .sidebar-right{
+    width: clamp(180px, 20vw, 320px);
+    min-width: 180px;
+  }
+  @media (max-width: 768px){
+    .sidebar-left, .sidebar-right{ display: none !important; }
   }
 
+  /* === FLUID HEADER NAV SCROLL === */
+  .header-nav-wrap{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    mask-image: linear-gradient(to right, transparent 0, black 6px, black calc(100% - 6px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 6px, black calc(100% - 6px), transparent 100%);
+  }
+  .header-nav-wrap::-webkit-scrollbar{ display:none; }
+
+  /* === FLUID TAP TARGETS === */
+  .range-btn{ min-height: clamp(24px, 3.5vw, 32px); min-width: clamp(24px, 3.5vw, 32px); display: inline-flex; align-items: center; justify-content: center; }
+  .nav-link-m{ min-height: clamp(28px, 4vw, 36px); }
+  .watch-row{ min-height: clamp(36px, 5vw, 48px); }
+  [data-ticker]{ min-height: clamp(36px, 5vw, 48px); }
+
+  /* === FLUID CHART === */
+  #chartWrap{
+    height: clamp(180px, 38dvh, 480px);
+    max-height: none;
+    margin-left: var(--fluid-px);
+    margin-right: var(--fluid-px);
+  }
+  #chartContainer{ height: 100%; min-height: 0; }
+
+  /* === FLUID CHART HEADER === */
+  .chart-header-row{ gap: clamp(0.25rem, 1vw, 0.5rem); }
+  .chart-header-row > div:first-child{ min-width: 0; flex: 1; }
+
+  /* === FLUID GRIDS === */
+  .fluid-grid-2{ grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); }
+  .fluid-grid-3{ grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr)); }
+  .fluid-grid-4{ grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr)); }
+
+  /* === FLUID TABLES === */
+  table th, table td{
+    padding-top: clamp(0.375rem, 1vw, 0.625rem);
+    padding-bottom: clamp(0.375rem, 1vw, 0.625rem);
+    padding-left: clamp(0.5rem, 1.5vw, 1rem);
+    padding-right: clamp(0.5rem, 1.5vw, 1rem);
+  }
+
+  /* === FLUID NEWS SECTION === */
+  #newsWireBody{ max-height: clamp(180px, 35vh, 380px); }
+  #corpActionsBody{ max-height: clamp(120px, 20vh, 200px); }
+
+  /* === FLUID TYPOGRAPHY === */
+  .text-fluid-xs{ font-size: clamp(0.5625rem, 1.2vw, 0.6875rem); }
+  .text-fluid-sm{ font-size: clamp(0.625rem, 1.4vw, 0.75rem); }
+  .text-fluid-base{ font-size: clamp(0.6875rem, 1.6vw, 0.875rem); }
+  .text-fluid-md{ font-size: clamp(0.75rem, 1.8vw, 1rem); }
+  .text-fluid-lg{ font-size: clamp(0.875rem, 2.2vw, 1.25rem); }
+  .text-fluid-xl{ font-size: clamp(1rem, 2.8vw, 1.5rem); }
+  .text-fluid-2xl{ font-size: clamp(1.25rem, 3.5vw, 2rem); }
+
+  /* === FLUID SPACING === */
+  .px-fluid{ padding-left: var(--fluid-px); padding-right: var(--fluid-px); }
+  .py-fluid{ padding-top: var(--fluid-py); padding-bottom: var(--fluid-py); }
+  .gap-fluid{ gap: var(--fluid-gap); }
+
+  /* === FLUID CARD PADDING === */
+  .card-pad{ padding: clamp(0.5rem, 1.5vw, 1rem); }
+
+  /* === FLUID GRID CELL MIN HEIGHT === */
+  .grid-cell-min{ min-height: clamp(60px, 10vh, 100px); }
+
+  /* === NEWS GRID: stack on small, side-by-side on large === */
+  .news-grid{ grid-template-columns: 1fr; }
+  @media (min-width: 1024px){ .news-grid{ grid-template-columns: 3fr 2fr; } }
+
+  /* === CORP PROFILE GRID === */
+  .corp-grid{ grid-template-columns: repeat(auto-fill, minmax(min(140px, 50%), 1fr)); }
+
+  /* === MOBILE WATCHLIST COMPACT === */
   @media (max-width: 480px) {
-    .ticker-track{ animation-duration: 20s; }
-    #chartContainer{ min-height: 240px !important; }
+    #chartWrap{ margin-left: 0.25rem; margin-right: 0.25rem; }
+    .chart-header-row{ flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -167,29 +267,29 @@ try{
   </div>
 
   <!-- ============ HEADER BAR ============ -->
-  <header class="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b border-[var(--line)] bg-[var(--bg-canvas)]">
-    <a href="#" onclick="document.querySelector('[data-category=equities]')?.click(); return false;" class="flex items-center gap-3 no-underline shrink-0">
+  <header class="flex items-center justify-between px-fluid py-2 sm:py-3 border-b border-[var(--line)] bg-[var(--bg-canvas)]">
+    <a href="#" onclick="document.querySelector('[data-category=equities]')?.click(); return false;" class="flex items-center gap-2 sm:gap-3 no-underline shrink-0">
       <div class="logo-badge">
         <img src="./a690d938-684a-490c-84c1-0f48a575eed1.png" alt="KM Terminal">
       </div>
-      <span class="font-extrabold tracking-tight text-[20px] sm:text-[20px] text-white">KM TERMINAL</span>
-      <span class="hidden sm:inline text-[10px] sm:text-[11px] text-[var(--text-dim)] font-mono-data">UG MARKETS</span>
+      <span class="font-extrabold tracking-tight text-fluid-lg text-white">KM TERMINAL</span>
+      <span class="hidden sm:inline text-fluid-xs text-[var(--text-dim)] font-mono-data">UG MARKETS</span>
     </a>
-    <nav class="flex items-center gap-4 sm:gap-5 xl:gap-6 mx-3 sm:mx-4 xl:mx-6 overflow-x-auto scrollbar-none">
-      <button data-category="equities" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Home</button>
-      <button data-category="market-summary" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Market Summary</button>
-      <button data-category="forex" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Forex</button>
-      <button data-category="bonds" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Fixed Income</button>
-      <button data-category="macro" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Macro</button>
-      <button data-category="investor" class="header-nav-link text-[14px] sm:text-[15px] xl:text-[16px] text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Investor Tools</button>
+    <nav class="header-nav-wrap flex items-center gap-3 sm:gap-5 mx-2 sm:mx-4 flex-nowrap min-w-0">
+      <button data-category="equities" class="header-nav-link text-fluid-base text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Home</button>
+      <button data-category="market-summary" class="header-nav-link text-fluid-base text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Market Summary</button>
+      <button data-category="forex" class="header-nav-link text-fluid-base text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Forex</button>
+      <button data-category="bonds" class="header-nav-link text-fluid-base text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Sovereign Debt Terminal</button>
+      <button data-category="macro" class="header-nav-link text-fluid-base text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Macro</button>
+      <button data-category="investor" class="header-nav-link text-fluid-base text-[var(--text-mid)] hover:text-white transition-colors font-bold whitespace-nowrap px-1">Investor Tools</button>
     </nav>
-    <div class="flex items-center gap-3 sm:gap-4 shrink-0">
-      <span class="text-[13px] sm:text-[14px] px-2.5 sm:px-3 py-1.5 rounded border border-[var(--line)] text-[var(--text-mid)] font-bold">Live</span>
-      <span id="marketStatusBadge" class="hidden md:inline-flex items-center gap-2 text-[13px] sm:text-[14px] px-2.5 sm:px-3 py-1.5 rounded font-bold font-mono-data">
-        <span id="statusDot" class="w-3 h-3 rounded-full"></span>
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+      <span class="text-fluid-xs px-1.5 sm:px-3 py-1 sm:py-1.5 rounded border border-[var(--line)] text-[var(--text-mid)] font-bold">Live</span>
+      <span id="marketStatusBadge" class="hidden md:inline-flex items-center gap-2 text-fluid-sm px-2 sm:px-3 py-1 sm:py-1.5 rounded font-bold font-mono-data">
+        <span id="statusDot" class="w-2.5 h-2.5 rounded-full"></span>
         <span id="statusText"></span>
       </span>
-      <span id="clockOut" class="hidden md:inline text-[13px] sm:text-[14px] font-mono-data font-bold text-[var(--text-mid)]"></span>
+      <span id="clockOut" class="hidden md:inline text-fluid-sm font-mono-data font-bold text-[var(--text-mid)]"></span>
     </div>
   </header>
 
@@ -197,22 +297,22 @@ try{
   <div class="flex flex-1 min-h-0">
 
     <!-- LEFT SIDEBAR NAV -->
-    <aside class="hidden md:flex flex-col w-48 lg:w-52 shrink-0 border-r border-[var(--line)] bg-[var(--bg-panel)] py-2.5 lg:py-3">
-      <div class="px-3 lg:px-4 pb-2 text-[10px] lg:text-[11px] uppercase tracking-wide text-[var(--text-dim)]">Markets</div>
+    <aside class="sidebar-left hidden md:flex flex-col shrink-0 border-r border-[var(--line)] bg-[var(--bg-panel)] py-2.5">
+      <div class="px-fluid pb-1 text-fluid-xs uppercase tracking-wide text-[var(--text-dim)]">Markets</div>
       <nav class="flex flex-col gap-0.5">
-        <button data-category="equities" class="nav-link active flex items-center gap-2 lg:gap-2.5 px-3 lg:px-4 py-2 lg:py-2.5 text-left text-[12px] lg:text-[13px] border-l-2 border-transparent text-[var(--text-mid)]">
+        <button data-category="equities" class="nav-link active flex items-center gap-2 px-fluid py-2 text-left text-fluid-sm border-l-2 border-transparent text-[var(--text-mid)]">
           <span>USE Equities</span>
         </button>
-        <button data-category="agri" class="nav-link flex items-center gap-2 lg:gap-2.5 px-3 lg:px-4 py-2 lg:py-2.5 text-left text-[12px] lg:text-[13px] border-l-2 border-transparent text-[var(--text-mid)]">
+        <button data-category="agri" class="nav-link flex items-center gap-2 px-fluid py-2 text-left text-fluid-sm border-l-2 border-transparent text-[var(--text-mid)]">
           <span>Agriculture Spot Prices</span>
         </button>
-        <button data-category="coffee" class="nav-link flex items-center gap-2 lg:gap-2.5 px-3 lg:px-4 py-2 lg:py-2.5 text-left text-[12px] lg:text-[13px] border-l-2 border-transparent text-[var(--text-mid)]">
+        <button data-category="coffee" class="nav-link flex items-center gap-2 px-fluid py-2 text-left text-fluid-sm border-l-2 border-transparent text-[var(--text-mid)]">
           <span>Coffee Auction Prices</span>
         </button>
       </nav>
 
-      <div class="mt-auto px-3 lg:px-4 pt-3 lg:pt-4 border-t border-[var(--line)] mx-1">
-        <p class="text-[10px] lg:text-[11px] leading-relaxed text-[var(--text-dim)]">
+      <div class="mt-auto px-fluid pt-3 border-t border-[var(--line)] mx-1">
+        <p class="text-fluid-xs leading-relaxed text-[var(--text-dim)]">
           USE equities via Mansa API. Macro data from World Bank API.
           Coffee via UCDA. USD/UGX via er-api.com. Bond yields from BoU.
         </p>
@@ -221,10 +321,10 @@ try{
 
     <!-- MOBILE CATEGORY BAR -->
     <div class="md:hidden w-full border-b border-[var(--line)] bg-[var(--bg-panel)] overflow-x-auto scrollbar-none">
-      <div class="flex gap-1 px-2 py-2 w-max">
-        <button data-category="equities" class="nav-link-m active px-3 py-1.5 rounded text-[11px] sm:text-[12px] whitespace-nowrap text-[var(--text-mid)]">USE Equities</button>
-        <button data-category="agri" class="nav-link-m px-3 py-1.5 rounded text-[11px] sm:text-[12px] whitespace-nowrap text-[var(--text-mid)]">Agriculture</button>
-        <button data-category="coffee" class="nav-link-m px-3 py-1.5 rounded text-[11px] sm:text-[12px] whitespace-nowrap text-[var(--text-mid)]">Coffee</button>
+      <div class="flex gap-1 px-2 py-1.5 w-max">
+        <button data-category="equities" class="nav-link-m active px-3 py-1.5 rounded text-fluid-xs whitespace-nowrap text-[var(--text-mid)]">USE Equities</button>
+        <button data-category="agri" class="nav-link-m px-3 py-1.5 rounded text-fluid-xs whitespace-nowrap text-[var(--text-mid)]">Agriculture</button>
+        <button data-category="coffee" class="nav-link-m px-3 py-1.5 rounded text-fluid-xs whitespace-nowrap text-[var(--text-mid)]">Coffee</button>
       </div>
     </div>
 
@@ -233,69 +333,69 @@ try{
 
       <!-- Chart Content Area -->
       <div class="flex-1 min-w-0 flex flex-col min-h-0 overflow-y-auto">
-        <div class="flex items-start justify-between px-3 sm:px-4 pt-3 sm:pt-4 pb-2 flex-wrap gap-2">
+        <div class="chart-header-row flex items-start justify-between px-fluid pt-fluid pb-2 flex-wrap gap-2">
           <div class="min-w-0">
             <div class="flex items-center gap-2">
-              <h1 id="chartTitle" class="text-base sm:text-lg font-semibold truncate">MTN Uganda</h1>
-              <span id="chartTicker" class="text-[11px] sm:text-[12px] font-mono-data text-[var(--text-dim)] px-1.5 py-0.5 rounded border border-[var(--line)] shrink-0">MTNU</span>
+              <h1 id="chartTitle" class="text-fluid-md font-semibold truncate">MTN Uganda</h1>
+              <span id="chartTicker" class="text-fluid-xs font-mono-data text-[var(--text-dim)] px-1.5 py-0.5 rounded border border-[var(--line)] shrink-0">MTNU</span>
             </div>
             <div class="flex items-baseline gap-2 mt-1">
-              <span id="chartPrice" class="text-xl sm:text-2xl font-semibold font-mono-data">170.00</span>
-              <span id="chartChange" class="text-[12px] sm:text-[13px] font-mono-data font-medium">+1.19%</span>
+              <span id="chartPrice" class="text-fluid-2xl font-semibold font-mono-data">170.00</span>
+              <span id="chartChange" class="text-fluid-sm font-mono-data font-medium">+1.19%</span>
             </div>
           </div>
-          <div id="rangeButtons" class="flex items-center gap-0.5 sm:gap-1 bg-[var(--bg-panel)] rounded-md p-0.5 sm:p-1 border border-[var(--line)]">
+          <div id="rangeButtons" class="flex items-center gap-0.5 sm:gap-1 bg-[var(--bg-panel)] rounded-md p-0.5 sm:p-1 border border-[var(--line)] shrink-0">
             <!-- populated by JS -->
           </div>
-          <div id="macroHistoryToggle" class="hidden items-center gap-0.5 sm:gap-1 bg-[var(--bg-panel)] rounded-md p-0.5 sm:p-1 border border-[var(--line)] ml-2">
-            <button data-view="usdugx" class="macro-view-btn active px-2 sm:px-2.5 py-1 rounded text-[10.5px] sm:text-[11.5px] font-medium text-[var(--text-mid)]">USD/UGX</button>
-            <button data-view="history" class="macro-view-btn px-2 sm:px-2.5 py-1 rounded text-[10.5px] sm:text-[11.5px] font-medium text-[var(--text-mid)]">CPI &amp; GDP</button>
+          <div id="macroHistoryToggle" class="hidden items-center gap-0.5 bg-[var(--bg-panel)] rounded-md p-0.5 border border-[var(--line)] ml-2">
+            <button data-view="usdugx" class="macro-view-btn active px-2 py-1 rounded text-fluid-xs font-medium text-[var(--text-mid)]">USD/UGX</button>
+            <button data-view="history" class="macro-view-btn px-2 py-1 rounded text-fluid-xs font-medium text-[var(--text-mid)]">CPI &amp; GDP</button>
           </div>
         </div>
 
-        <div id="chartWrap" class="relative mx-1.5 sm:mx-2 mb-2 sm:mb-3 rounded-md border border-[var(--line)] overflow-hidden" style="max-height:450px;">
-          <div id="chartContainer" class="w-full h-full" style="min-height:280px;"></div>
+        <div id="chartWrap" class="relative mx-1 sm:mx-2 mb-2 rounded-md border border-[var(--line)] overflow-hidden">
+          <div id="chartContainer" class="w-full h-full"></div>
         </div>
 
         <!-- Corporate Profile Metrics -->
-        <div id="corpProfilePanel" class="mx-1.5 sm:mx-2 mb-2 sm:mb-3">
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--line)] rounded-md overflow-hidden">
-            <div class="bg-[var(--bg-panel)] px-3 sm:px-4 py-2.5 sm:py-3">
-              <div class="text-[8px] sm:text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">52-Week Range</div>
+        <div id="corpProfilePanel" class="mx-1 sm:mx-2 mb-2">
+          <div class="corp-grid grid gap-px bg-[var(--line)] rounded-md overflow-hidden">
+            <div class="bg-[var(--bg-panel)] card-pad">
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">52-Week Range</div>
               <div class="flex items-baseline gap-1.5">
-                <span id="profileWeekLo" class="text-[13px] sm:text-[14px] font-mono-data font-bold text-[var(--down)]">--</span>
-                <span class="text-[9px] text-[var(--text-dim)]">—</span>
-                <span id="profileWeekHi" class="text-[13px] sm:text-[14px] font-mono-data font-bold text-[var(--up)]">--</span>
+                <span id="profileWeekLo" class="text-fluid-base font-mono-data font-bold text-[var(--down)]">--</span>
+                <span class="text-fluid-xs text-[var(--text-dim)]">—</span>
+                <span id="profileWeekHi" class="text-fluid-base font-mono-data font-bold text-[var(--up)]">--</span>
               </div>
               <div class="mt-1.5 h-1 bg-[var(--bg-canvas)] rounded overflow-hidden relative">
                 <div id="profileRangeBar" class="absolute h-full bg-[var(--accent)] rounded" style="left:0%;width:100%"></div>
                 <div id="profileRangeDot" class="absolute w-1.5 h-1.5 rounded-full bg-white border border-[var(--accent)] top-1/2 -translate-y-1/2" style="left:50%"></div>
               </div>
             </div>
-            <div class="bg-[var(--bg-panel)] px-3 sm:px-4 py-2.5 sm:py-3">
-              <div class="text-[8px] sm:text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Market Cap</div>
-              <div id="profileMcap" class="text-[15px] sm:text-[16px] font-mono-data font-bold text-[var(--text-hi)]">--</div>
-              <div id="profileMcapUnit" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-0.5">UGX</div>
+            <div class="bg-[var(--bg-panel)] card-pad">
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Market Cap</div>
+              <div id="profileMcap" class="text-fluid-base font-mono-data font-bold text-[var(--text-hi)]">--</div>
+              <div id="profileMcapUnit" class="text-fluid-xs text-[var(--text-dim)] mt-0.5">UGX</div>
             </div>
-            <div class="bg-[var(--bg-panel)] px-3 sm:px-4 py-2.5 sm:py-3">
-              <div class="text-[8px] sm:text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Shares Outstanding</div>
-              <div id="profileShares" class="text-[15px] sm:text-[16px] font-mono-data font-bold text-[var(--text-hi)]">--</div>
-              <div id="profileSharesUnit" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-0.5">million</div>
+            <div class="bg-[var(--bg-panel)] card-pad">
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Shares Outstanding</div>
+              <div id="profileShares" class="text-fluid-base font-mono-data font-bold text-[var(--text-hi)]">--</div>
+              <div id="profileSharesUnit" class="text-fluid-xs text-[var(--text-dim)] mt-0.5">million</div>
             </div>
-            <div class="bg-[var(--bg-panel)] px-3 sm:px-4 py-2.5 sm:py-3">
-              <div class="text-[8px] sm:text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Dividend Yield</div>
-              <div id="profileDivYield" class="text-[15px] sm:text-[16px] font-mono-data font-bold text-[var(--accent)]">--</div>
-              <div id="profileDivFreq" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-0.5">--</div>
+            <div class="bg-[var(--bg-panel)] card-pad">
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Dividend Yield</div>
+              <div id="profileDivYield" class="text-fluid-base font-mono-data font-bold text-[var(--accent)]">--</div>
+              <div id="profileDivFreq" class="text-fluid-xs text-[var(--text-dim)] mt-0.5">--</div>
             </div>
           </div>
         </div>
 
         <!-- Pan-African Index Comparison -->
-        <div class="px-3 sm:px-4 pb-3 sm:pb-4">
+        <div class="px-fluid pb-3">
           <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
-            <div class="px-4 sm:px-5 py-2.5 border-b border-[var(--line)] flex items-center justify-between">
-              <h3 class="text-[11px] sm:text-[12px] font-semibold text-[var(--text-hi)]">Pan-African Indices</h3>
-              <span id="panAfriAsOf" class="text-[9px] text-[var(--text-dim)] font-mono-data"></span>
+            <div class="px-fluid py-2.5 border-b border-[var(--line)] flex items-center justify-between">
+              <h3 class="text-fluid-sm font-semibold text-[var(--text-hi)]">Pan-African Indices</h3>
+              <span id="panAfriAsOf" class="text-fluid-xs text-[var(--text-dim)] font-mono-data"></span>
             </div>
             <div class="overflow-hidden">
               <div id="panAfriTrack" class="ticker-track py-2.5"></div>
@@ -311,13 +411,13 @@ try{
 
     <!-- ====== MARKET SUMMARY ====== -->
     <div id="page-market-summary" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
-      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
-        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">USE Market Summary</h2>
+      <div class="px-fluid pt-fluid pb-3 border-b border-[var(--line)]">
+        <h2 class="text-fluid-lg font-bold text-[var(--text-hi)]">USE Market Summary</h2>
         <p class="text-[10px] text-[var(--text-dim)] mt-1">Live index overview via Mansa API</p>
       </div>
 
-      <div class="px-4 sm:px-6 py-5">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl">
+      <div class="px-fluid py-fluid">
+        <div class="fluid-grid-2 grid gap-4 max-w-3xl">
 
           <!-- Card 1: All Share Index -->
           <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5">
@@ -326,8 +426,8 @@ try{
               <span class="text-[10px] sm:text-[11px] uppercase tracking-wide text-[var(--text-dim)] font-bold">All Share Index</span>
             </div>
             <div id="ms-asi-value" class="text-[28px] sm:text-[32px] font-bold font-mono-data text-[var(--text-hi)] leading-none">--</div>
-            <div id="ms-asi-change" class="text-[13px] sm:text-[14px] font-mono-data font-bold mt-2">--</div>
-            <div class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-2">USE All Share Index</div>
+            <div id="ms-asi-change" class="text-fluid-sm font-mono-data font-bold mt-2">--</div>
+            <div class="text-fluid-xs text-[var(--text-dim)] mt-2">USE All Share Index</div>
           </div>
 
           <!-- Card 2: Market Capitalization -->
@@ -337,8 +437,8 @@ try{
               <span class="text-[10px] sm:text-[11px] uppercase tracking-wide text-[var(--text-dim)] font-bold">Market Cap</span>
             </div>
             <div id="ms-mcap-value" class="text-[28px] sm:text-[32px] font-bold font-mono-data text-[var(--text-hi)] leading-none">--</div>
-            <div id="ms-mcap-unit" class="text-[12px] sm:text-[13px] font-mono-data text-[var(--text-mid)] mt-1">UGX</div>
-            <div class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-2">Total USE Market Capitalization</div>
+            <div id="ms-mcap-unit" class="text-fluid-xs font-mono-data text-[var(--text-mid)] mt-1">UGX</div>
+            <div class="text-fluid-xs text-[var(--text-dim)] mt-2">Total USE Market Capitalization</div>
           </div>
 
           <!-- Card 3: Daily Traded Volume -->
@@ -348,8 +448,8 @@ try{
               <span class="text-[10px] sm:text-[11px] uppercase tracking-wide text-[var(--text-dim)] font-bold">Daily Volume</span>
             </div>
             <div id="ms-volume-value" class="text-[28px] sm:text-[32px] font-bold font-mono-data text-[var(--text-hi)] leading-none">--</div>
-            <div id="ms-volume-unit" class="text-[12px] sm:text-[13px] font-mono-data text-[var(--text-mid)] mt-1">shares</div>
-            <div class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-2">Total Shares Traded Today</div>
+            <div id="ms-volume-unit" class="text-fluid-xs font-mono-data text-[var(--text-mid)] mt-1">shares</div>
+            <div class="text-fluid-xs text-[var(--text-dim)] mt-2">Total Shares Traded Today</div>
           </div>
 
           <!-- Card 4: Market Status -->
@@ -359,16 +459,16 @@ try{
               <span class="text-[10px] sm:text-[11px] uppercase tracking-wide text-[var(--text-dim)] font-bold">Market Status</span>
             </div>
             <div id="ms-status-text" class="text-[28px] sm:text-[32px] font-bold font-mono-data leading-none">--</div>
-            <div id="ms-status-next" class="text-[12px] sm:text-[13px] font-mono-data text-[var(--text-mid)] mt-2">--</div>
-            <div class="text-[9px] sm:text-[10px] text-[var(--text-dim)] mt-2">USE Trading Session</div>
+            <div id="ms-status-next" class="text-fluid-xs font-mono-data text-[var(--text-mid)] mt-2">--</div>
+            <div class="text-fluid-xs text-[var(--text-dim)] mt-2">USE Trading Session</div>
           </div>
 
         </div>
       </div>
 
       <!-- Source Credit -->
-      <div class="px-4 sm:px-6 pb-5">
-        <p class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data leading-relaxed">
+      <div class="px-fluid pb-4">
+        <p class="text-fluid-xs text-[var(--text-dim)] font-mono-data leading-relaxed">
           Source: Mansa API — live USE exchange data. Data is indicative and subject to revision.
         </p>
       </div>
@@ -376,54 +476,54 @@ try{
 
     <!-- ====== FOREX SPOT TERMINAL ====== -->
     <div id="page-forex" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
-      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
-        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">Forex Spot Terminal</h2>
-        <p class="text-[10px] text-[var(--text-dim)] mt-1">Live cross-border currency pairs — East African Community</p>
+      <div class="px-fluid pt-fluid pb-3 border-b border-[var(--line)]">
+        <h2 class="text-fluid-lg font-bold text-[var(--text-hi)]">Forex Spot Terminal</h2>
+        <p class="text-fluid-xs text-[var(--text-dim)] mt-1">Live cross-border currency pairs — East African Community</p>
       </div>
 
       <!-- Currency Pair Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[var(--line)]">
-        <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
+      <div class="fluid-grid-3 grid gap-px bg-[var(--line)]">
+        <div class="bg-[var(--bg-canvas)] px-fluid py-4">
           <div class="flex items-center gap-2 mb-2">
-            <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(76,141,255,0.1)] text-[var(--accent)] font-mono-data font-bold">UG</span>
-            <span class="text-[11px] text-[var(--text-mid)] font-medium">USD / UGX</span>
+            <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(76,141,255,0.1)] text-[var(--accent)] font-mono-data font-bold">UG</span>
+            <span class="text-fluid-sm text-[var(--text-mid)] font-medium">USD / UGX</span>
           </div>
-          <div id="fx-usd-ugx" class="text-xl sm:text-2xl font-bold font-mono-data text-[var(--text-hi)]">3,720.00</div>
-          <div id="fx-usd-ugx-chg" class="text-[11px] font-mono-data text-[var(--up)] mt-1">+0.15%</div>
-          <div class="text-[9px] text-[var(--text-dim)] mt-1">US Dollar → Ugandan Shilling</div>
+          <div id="fx-usd-ugx" class="text-fluid-xl font-bold font-mono-data text-[var(--text-hi)]">3,720.00</div>
+          <div id="fx-usd-ugx-chg" class="text-fluid-sm font-mono-data text-[var(--up)] mt-1">+0.15%</div>
+          <div class="text-fluid-xs text-[var(--text-dim)] mt-1">US Dollar → Ugandan Shilling</div>
         </div>
-        <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
+        <div class="bg-[var(--bg-canvas)] px-fluid py-4">
           <div class="flex items-center gap-2 mb-2">
-            <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(38,166,154,0.1)] text-[var(--up)] font-mono-data font-bold">KE</span>
-            <span class="text-[11px] text-[var(--text-mid)] font-medium">KES / UGX</span>
+            <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(38,166,154,0.1)] text-[var(--up)] font-mono-data font-bold">KE</span>
+            <span class="text-fluid-sm text-[var(--text-mid)] font-medium">KES / UGX</span>
           </div>
-          <div id="fx-kes-ugx" class="text-xl sm:text-2xl font-bold font-mono-data text-[var(--text-hi)]">28.65</div>
-          <div id="fx-kes-ugx-chg" class="text-[11px] font-mono-data text-[var(--flat)] mt-1">0.00%</div>
-          <div class="text-[9px] text-[var(--text-dim)] mt-1">Kenyan Shilling → Ugandan Shilling</div>
+          <div id="fx-kes-ugx" class="text-fluid-xl font-bold font-mono-data text-[var(--text-hi)]">28.65</div>
+          <div id="fx-kes-ugx-chg" class="text-fluid-sm font-mono-data text-[var(--flat)] mt-1">0.00%</div>
+          <div class="text-fluid-xs text-[var(--text-dim)] mt-1">Kenyan Shilling → Ugandan Shilling</div>
         </div>
-        <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
+        <div class="bg-[var(--bg-canvas)] px-fluid py-4">
           <div class="flex items-center gap-2 mb-2">
-            <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(239,83,80,0.1)] text-[var(--down)] font-mono-data font-bold">TZ</span>
-            <span class="text-[11px] text-[var(--text-mid)] font-medium">TZS / UGX</span>
+            <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(239,83,80,0.1)] text-[var(--down)] font-mono-data font-bold">TZ</span>
+            <span class="text-fluid-sm text-[var(--text-mid)] font-medium">TZS / UGX</span>
           </div>
-          <div id="fx-tzs-ugx" class="text-xl sm:text-2xl font-bold font-mono-data text-[var(--text-hi)]">1.42</div>
-          <div id="fx-tzs-ugx-chg" class="text-[11px] font-mono-data text-[var(--flat)] mt-1">0.00%</div>
-          <div class="text-[9px] text-[var(--text-dim)] mt-1">Tanzanian Shilling → Ugandan Shilling</div>
+          <div id="fx-tzs-ugx" class="text-fluid-xl font-bold font-mono-data text-[var(--text-hi)]">1.42</div>
+          <div id="fx-tzs-ugx-chg" class="text-fluid-sm font-mono-data text-[var(--flat)] mt-1">0.00%</div>
+          <div class="text-fluid-xs text-[var(--text-dim)] mt-1">Tanzanian Shilling → Ugandan Shilling</div>
         </div>
       </div>
 
       <!-- Currency Converter -->
-      <div class="px-4 sm:px-6 py-5">
+      <div class="px-fluid py-fluid">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5 max-w-xl">
-          <h3 class="text-[13px] font-semibold text-[var(--text-hi)] mb-3">Currency Converter</h3>
+          <h3 class="text-fluid-base font-semibold text-[var(--text-hi)] mb-3">Currency Converter</h3>
           <div class="grid grid-cols-1 sm:grid-cols-[1fr,auto,1fr] gap-3 items-end">
             <div>
               <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Amount</label>
-              <input id="convAmount" type="number" value="1000" min="0" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+              <input id="convAmount" type="number" value="1000" min="0" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-fluid-sm font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
             </div>
             <div>
               <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">From</label>
-              <select id="convFrom" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+              <select id="convFrom" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-fluid-sm font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
                 <option value="USD">USD — US Dollar</option>
                 <option value="KES">KES — Kenyan Shilling</option>
                 <option value="TZS">TZS — Tanzanian Shilling</option>
@@ -433,28 +533,28 @@ try{
             </div>
             <div class="sm:text-center">
               <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">&nbsp;</label>
-              <div class="text-[13px] font-mono-data font-bold text-[var(--up)] bg-[rgba(38,166,154,0.08)] border border-[rgba(38,166,154,0.2)] rounded px-3 py-2" id="convResult">UGX 372,000.00</div>
+              <div class="text-fluid-sm font-mono-data font-bold text-[var(--up)] bg-[rgba(38,166,154,0.08)] border border-[rgba(38,166,154,0.2)] rounded px-3 py-2" id="convResult">UGX 372,000.00</div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Regional Central Bank Rates Table -->
-      <div class="px-4 sm:px-6 pb-5">
+      <div class="px-fluid pb-4">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
           <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[13px] font-semibold text-[var(--text-hi)]">Regional Central Bank Policy Rates</h3>
+            <h3 class="text-fluid-base font-semibold text-[var(--text-hi)]">Regional Central Bank Policy Rates</h3>
             <span class="text-[9px] text-[var(--text-dim)] font-mono-data">Official benchmark rates</span>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left">
               <thead>
                 <tr class="border-b border-[var(--line)]">
-                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium">Central Bank</th>
-                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Policy Rate</th>
-                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Change</th>
-                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right hidden sm:table-cell">Last Meeting</th>
-                  <th class="px-4 sm:px-5 py-2.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] font-medium text-right hidden md:table-cell">Next Meeting</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] font-medium">Central Bank</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Policy Rate</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] font-medium text-right">Change</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] font-medium text-right hidden sm:table-cell">Last Meeting</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] font-medium text-right hidden md:table-cell">Next Meeting</th>
                 </tr>
               </thead>
               <tbody id="centralRatesBody"></tbody>
@@ -464,10 +564,10 @@ try{
       </div>
 
       <!-- Global Major Pair Ticker Strip -->
-      <div class="px-4 sm:px-6 pb-5">
+      <div class="px-fluid pb-4">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
           <div class="px-4 sm:px-5 py-2.5 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[12px] font-semibold text-[var(--text-hi)]">Global Major Pairs</h3>
+            <h3 class="text-fluid-sm font-semibold text-[var(--text-hi)]">Global Major Pairs</h3>
             <span class="text-[9px] text-[var(--text-dim)] font-mono-data">Live quotes</span>
           </div>
           <div class="overflow-hidden">
@@ -478,21 +578,21 @@ try{
 
       <!-- Spread Snapshot -->
       <div class="px-4 sm:px-6 pb-5">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[var(--line)] rounded-lg overflow-hidden">
+        <div class="fluid-grid-3 grid gap-px bg-[var(--line)] rounded-lg overflow-hidden">
           <div class="bg-[var(--bg-canvas)] px-4 py-3">
             <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">USD/UGX Bid-Ask Spread</div>
-            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">3,718 / 3,722</div>
-            <div class="text-[9px] text-[var(--text-dim)] mt-0.5">4.00 UGX (0.11%)</div>
+            <div class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)] mt-0.5">3,718 / 3,722</div>
+            <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">4.00 UGX (0.11%)</div>
           </div>
           <div class="bg-[var(--bg-canvas)] px-4 py-3">
             <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">KES/UGX Midpoint</div>
-            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">28.65</div>
-            <div class="text-[9px] text-[var(--text-dim)] mt-0.5">Cross-rate via USD/UGX ÷ USD/KES</div>
+            <div class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)] mt-0.5">28.65</div>
+            <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">Cross-rate via USD/UGX ÷ USD/KES</div>
           </div>
           <div class="bg-[var(--bg-canvas)] px-4 py-3">
             <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">EAC Trade Weighted Index</div>
-            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">102.45</div>
-            <div class="text-[9px] text-[var(--up)] mt-0.5">▲ +0.18% (30d)</div>
+            <div class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)] mt-0.5">102.45</div>
+            <div class="text-fluid-xs text-[var(--up)] mt-0.5">▲ +0.18% (30d)</div>
           </div>
         </div>
       </div>
@@ -500,18 +600,18 @@ try{
 
     <!-- ====== FIXED INCOME (BONDS) ====== -->
     <div id="page-bonds" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
-      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
-        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">Fixed Income &amp; Sovereign Debt</h2>
-        <p class="text-[10px] text-[var(--text-dim)] mt-1">Bank of Uganda primary auction results &amp; benchmark yields</p>
+      <div class="px-fluid pt-fluid pb-3 border-b border-[var(--line)]">
+        <h2 class="text-fluid-lg font-bold text-[var(--text-hi)]">Sovereign Debt Terminal</h2>
+        <p class="text-[10px] text-[var(--text-dim)] mt-1">BoU auction results, benchmark yields, interbank rates &amp; financial soundness</p>
       </div>
 
       <!-- Auction Results Split -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-px bg-[var(--line)]">
+      <div class="fluid-grid-2 grid gap-px bg-[var(--line)]">
 
         <!-- Treasury Bills Panel -->
         <div class="bg-[var(--bg-canvas)] flex flex-col">
           <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)] flex items-center gap-2">
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)] flex items-center gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
               Treasury Bills — Discount Yields
             </h3>
@@ -535,7 +635,7 @@ try{
         <!-- Treasury Bonds Panel -->
         <div class="bg-[var(--bg-canvas)] flex flex-col">
           <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)] flex items-center gap-2">
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)] flex items-center gap-2">
               <span class="w-1.5 h-1.5 rounded-full bg-[var(--up)]"></span>
               Treasury Bonds — Coupon Yields
             </h3>
@@ -558,43 +658,127 @@ try{
       </div>
 
       <!-- Yield Curve -->
-      <div class="px-4 sm:px-6 py-5">
+      <div class="px-fluid py-fluid">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5">
-          <h3 class="text-[13px] font-semibold text-[var(--text-hi)] mb-3">Yield Curve — BoU Benchmarks</h3>
+          <h3 class="text-fluid-base font-semibold text-[var(--text-hi)] mb-3">Yield Curve — BoU Benchmarks</h3>
           <div style="height:260px;"><canvas id="yieldCurveCanvas"></canvas></div>
         </div>
       </div>
 
+      <!-- Interest Rates Dashboard -->
+      <div class="px-fluid pb-3">
+        <div class="fluid-grid-2 grid gap-px bg-[var(--line)] rounded-lg overflow-hidden">
+
+          <!-- Interbank Rates Trend -->
+          <div class="bg-[var(--bg-canvas)] flex flex-col">
+            <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+              <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)] flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
+                Daily Interbank Rates Trends
+              </h3>
+              <span id="interbankAsOf" class="text-[9px] text-[var(--text-dim)] font-mono-data"></span>
+            </div>
+            <div class="px-4 sm:px-5 py-4 flex-1">
+              <div style="height:220px;"><canvas id="interbankChartCanvas"></canvas></div>
+            </div>
+          </div>
+
+          <!-- T-Bill Yields Bar Chart -->
+          <div class="bg-[var(--bg-canvas)] flex flex-col">
+            <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+              <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)] flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--up)]"></span>
+                Annualized Treasury Bill Yields
+              </h3>
+              <span id="tbillChartAsOf" class="text-[9px] text-[var(--text-dim)] font-mono-data"></span>
+            </div>
+            <div class="px-4 sm:px-5 py-4 flex-1">
+              <div style="height:220px;"><canvas id="tbillBarCanvas"></canvas></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Exchange Rates Grid -->
+      <div class="px-fluid pb-3">
+        <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
+          <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-fluid-sm font-semibold text-[var(--text-hi)] flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
+              BoU Official Daily Mid-Rates
+            </h3>
+            <span id="fxGridAsOf" class="text-[9px] text-[var(--text-dim)] font-mono-data"></span>
+          </div>
+          <div id="exchangeRateGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--line)]">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Credit by Sector + Financial Soundness -->
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-px bg-[var(--line)] mx-fluid mb-3 rounded-lg overflow-hidden">
+
+        <!-- Credit Allocation Pie -->
+        <div class="lg:col-span-3 bg-[var(--bg-canvas)] flex flex-col">
+          <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)] flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[var(--up)]"></span>
+              Commercial Bank Credit Allocation by Sector
+            </h3>
+            <span class="text-[9px] text-[var(--text-dim)] font-mono-data">BoU Financial Stability Report</span>
+          </div>
+          <div class="px-4 sm:px-5 py-5 flex items-center justify-center flex-1">
+            <div class="w-full" style="max-width:340px;"><canvas id="creditPieCanvas"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Financial Soundness -->
+        <div class="lg:col-span-2 bg-[var(--bg-canvas)] flex flex-col">
+          <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)] flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]"></span>
+              Financial Soundness Indicators
+            </h3>
+            <span class="text-[9px] text-[var(--text-dim)] font-mono-data">Basel III / BoU</span>
+          </div>
+          <div id="soundnessBody" class="flex-1 p-4 sm:p-5 flex flex-col justify-center gap-4">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+      </div>
+
       <!-- Auction Summary Cards -->
-      <div class="px-4 sm:px-6 pb-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--line)] rounded-lg overflow-hidden">
+      <div class="px-fluid pb-3">
+        <div class="fluid-grid-4 grid gap-px bg-[var(--line)] rounded-lg overflow-hidden">
           <div class="bg-[var(--bg-canvas)] px-4 py-3">
             <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Total T-Bill Raised</div>
-            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">UGX 1.82T</div>
-            <div class="text-[9px] text-[var(--up)] mt-0.5">▲ +12.4% YoY</div>
+            <div class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)] mt-0.5">UGX 1.82T</div>
+            <div class="text-fluid-xs text-[var(--up)] mt-0.5">▲ +12.4% YoY</div>
           </div>
           <div class="bg-[var(--bg-canvas)] px-4 py-3">
             <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Total Bond Raised</div>
-            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">UGX 2.45T</div>
-            <div class="text-[9px] text-[var(--up)] mt-0.5">▲ +8.2% YoY</div>
+            <div class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)] mt-0.5">UGX 2.45T</div>
+            <div class="text-fluid-xs text-[var(--up)] mt-0.5">▲ +8.2% YoY</div>
           </div>
           <div class="bg-[var(--bg-canvas)] px-4 py-3">
             <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Avg. T-Bill Coverage</div>
-            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">1.85x</div>
-            <div class="text-[9px] text-[var(--text-dim)] mt-0.5">Oversubscribed</div>
+            <div class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)] mt-0.5">1.85x</div>
+            <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">Oversubscribed</div>
           </div>
           <div class="bg-[var(--bg-canvas)] px-4 py-3">
             <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Avg. Bond Coverage</div>
-            <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">2.12x</div>
-            <div class="text-[9px] text-[var(--text-dim)] mt-0.5">Oversubscribed</div>
+            <div class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)] mt-0.5">2.12x</div>
+            <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">Oversubscribed</div>
           </div>
         </div>
       </div>
 
       <!-- Source Credit -->
-      <div class="px-4 sm:px-6 pb-5">
-        <p class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data leading-relaxed">
-          Source: Bank of Uganda (bou.or.ug) — Primary auction results. Yields are cut-off rates from the latest weekly auctions.
+      <div class="px-fluid pb-4">
+        <p class="text-fluid-xs text-[var(--text-dim)] font-mono-data leading-relaxed">
+          Source: Bank of Uganda (bou.or.ug) — Primary auction results, interbank rates, official mid-rates, and financial soundness indicators.
           Data is indicative and subject to revision. For official figures, visit <a href="https://www.bou.or.ug" target="_blank" rel="noopener" class="text-[var(--accent)] hover:underline">bou.or.ug</a>.
         </p>
       </div>
@@ -602,13 +786,13 @@ try{
 
     <!-- ====== MACRO INTELLIGENCE ====== -->
     <div id="page-macro" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
-      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
-        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">Macro Intelligence</h2>
+      <div class="px-fluid pt-fluid pb-3 border-b border-[var(--line)]">
+        <h2 class="text-fluid-lg font-bold text-[var(--text-hi)]">Macro Intelligence</h2>
         <p class="text-[10px] text-[var(--text-dim)] mt-1">World Bank + BoU fundamental data for Uganda</p>
       </div>
 
       <!-- KPI Row -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--line)]">
+      <div class="fluid-grid-4 grid gap-px bg-[var(--line)]">
         <div class="bg-[var(--bg-canvas)] px-4 py-3">
           <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">CBR Rate</div>
           <div id="macro-kpi-cbr" class="text-lg font-bold font-mono-data text-[var(--text-hi)] mt-0.5">10.00%</div>
@@ -628,100 +812,100 @@ try{
       </div>
 
       <!-- Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-px bg-[var(--line)]">
+      <div class="fluid-grid-2 grid gap-px bg-[var(--line)]">
         <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
-          <h3 class="text-[12px] font-semibold text-[var(--text-hi)] mb-3">CPI Headline vs Core Inflation</h3>
+          <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)] mb-3">CPI Headline vs Core Inflation</h3>
           <div style="height:220px;"><canvas id="cpiChartCanvas"></canvas></div>
         </div>
         <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
-          <h3 class="text-[12px] font-semibold text-[var(--text-hi)] mb-3">Policy Rate &amp; 10Y Bond Yield</h3>
+          <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)] mb-3">Policy Rate &amp; 10Y Bond Yield</h3>
           <div style="height:220px;"><canvas id="policyChartCanvas"></canvas></div>
         </div>
       </div>
 
       <!-- External Reserves -->
-      <div class="px-4 sm:px-6 py-4">
+      <div class="px-fluid py-fluid">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
           <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)]">External Reserves</h3>
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)]">External Reserves</h3>
             <span class="text-[9px] text-[var(--text-dim)] font-mono-data">BoU data</span>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3">
+          <div class="fluid-grid-3 grid">
             <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
-              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Gross Official Reserves</div>
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Gross Official Reserves</div>
               <div id="macro-reserves-usd" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
-              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">USD millions, end-period</div>
+              <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">USD millions, end-period</div>
             </div>
             <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
-              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Months of Import Cover</div>
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Months of Import Cover</div>
               <div id="macro-reserves-mic" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
-              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">IMF benchmark: 4.0 months</div>
+              <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">IMF benchmark: 4.0 months</div>
             </div>
             <div class="px-4 sm:px-5 py-4">
-              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Debt Service Ratio</div>
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Debt Service Ratio</div>
               <div id="macro-reserves-dsr" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
-              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">% of exports, annual</div>
+              <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">% of exports, annual</div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- National Trade Balance -->
-      <div class="px-4 sm:px-6 pb-4">
+      <div class="px-fluid pb-3">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
           <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)]">National Trade Balance</h3>
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)]">National Trade Balance</h3>
             <span class="text-[9px] text-[var(--text-dim)] font-mono-data">UBOS / MoFPED</span>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-4">
+          <div class="fluid-grid-4 grid">
             <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
-              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Total Exports</div>
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Total Exports</div>
               <div id="macro-trade-exports" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
-              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">USD millions, annual</div>
+              <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">USD millions, annual</div>
             </div>
             <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
-              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Total Imports</div>
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Total Imports</div>
               <div id="macro-trade-imports" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
-              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">USD millions, annual</div>
+              <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">USD millions, annual</div>
             </div>
             <div class="px-4 sm:px-5 py-4 border-b sm:border-b-0 sm:border-r border-[var(--line)]">
-              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Trade Deficit</div>
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Trade Deficit</div>
               <div id="macro-trade-deficit" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--down)]">—</div>
-              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">USD millions, annual</div>
+              <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">USD millions, annual</div>
             </div>
             <div class="px-4 sm:px-5 py-4">
-              <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Terms of Trade Index</div>
+              <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Terms of Trade Index</div>
               <div id="macro-trade-tot" class="text-[18px] sm:text-[20px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
-              <div class="text-[9px] text-[var(--text-dim)] mt-0.5">2010 = 100</div>
+              <div class="text-fluid-xs text-[var(--text-dim)] mt-0.5">2010 = 100</div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Private Sector Credit Growth -->
-      <div class="px-4 sm:px-6 pb-4">
+      <div class="px-fluid pb-3">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
           <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)]">Private Sector Credit Growth</h3>
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)]">Private Sector Credit Growth</h3>
             <span class="text-[9px] text-[var(--text-dim)] font-mono-data">BoU monetary data</span>
           </div>
           <div id="macroCreditBody" class="px-4 sm:px-5 py-4">
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">YoY Growth</div>
-                <div id="macro-credit-yoy" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">YoY Growth</div>
+                <div id="macro-credit-yoy" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Outstanding (UGX B)</div>
-                <div id="macro-credit-outstanding" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Outstanding (UGX B)</div>
+                <div id="macro-credit-outstanding" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">3M Trend</div>
-                <div id="macro-credit-trend" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">3M Trend</div>
+                <div id="macro-credit-trend" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Lending Rate Avg</div>
-                <div id="macro-credit-rate" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Lending Rate Avg</div>
+                <div id="macro-credit-rate" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
             </div>
             <div class="mt-3 h-1 bg-[var(--bg-canvas)] rounded overflow-hidden">
@@ -736,25 +920,25 @@ try{
       </div>
 
       <!-- Gross Foreign Exchange Reserves -->
-      <div class="px-4 sm:px-6 pb-4">
+      <div class="px-fluid pb-3">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
           <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)]">Gross Foreign Exchange Reserves</h3>
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)]">Gross Foreign Exchange Reserves</h3>
             <span class="text-[9px] text-[var(--text-dim)] font-mono-data">BoU reserves data</span>
           </div>
           <div id="macroForexBody" class="px-4 sm:px-5 py-4">
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Total Reserves (USD M)</div>
-                <div id="macro-forex-total" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Total Reserves (USD M)</div>
+                <div id="macro-forex-total" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Months Cover</div>
-                <div id="macro-forex-months" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Months Cover</div>
+                <div id="macro-forex-months" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">Change (QoQ)</div>
-                <div id="macro-forex-change" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">Change (QoQ)</div>
+                <div id="macro-forex-change" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
             </div>
             <div class="mt-3 flex items-center gap-2">
@@ -770,29 +954,29 @@ try{
       </div>
 
       <!-- M2/M3 Money Supply -->
-      <div class="px-4 sm:px-6 pb-4">
+      <div class="px-fluid pb-3">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg overflow-hidden">
           <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)]">M2/M3 Money Supply</h3>
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)]">M2/M3 Money Supply</h3>
             <span class="text-[9px] text-[var(--text-dim)] font-mono-data">BoU monetary aggregates</span>
           </div>
           <div id="macroMoneyBody" class="px-4 sm:px-5 py-4">
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">M2 (UGX T)</div>
-                <div id="macro-m2" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">M2 (UGX T)</div>
+                <div id="macro-m2" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">M3 (UGX T)</div>
-                <div id="macro-m3" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">M3 (UGX T)</div>
+                <div id="macro-m3" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">M2 YoY Growth</div>
-                <div id="macro-m2-growth" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">M2 YoY Growth</div>
+                <div id="macro-m2-growth" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
               <div>
-                <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)] mb-1">M3 YoY Growth</div>
-                <div id="macro-m3-growth" class="text-[16px] sm:text-[18px] font-bold font-mono-data text-[var(--text-hi)]">—</div>
+                <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] mb-1">M3 YoY Growth</div>
+                <div id="macro-m3-growth" class="text-fluid-lg font-bold font-mono-data text-[var(--text-hi)]">—</div>
               </div>
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2">
@@ -820,16 +1004,16 @@ try{
       </div>
 
       <!-- World Bank Indicators -->
-      <div class="px-4 sm:px-6 py-5">
+      <div class="px-fluid py-fluid">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-5">
-          <h3 class="text-[13px] font-semibold text-[var(--text-hi)] mb-3">World Bank — Uganda Key Indicators</h3>
+          <h3 class="text-fluid-base font-semibold text-[var(--text-hi)] mb-3">World Bank — Uganda Key Indicators</h3>
           <div id="wbIndicatorsBody" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
         </div>
       </div>
 
       <!-- Source Credit -->
-      <div class="px-4 sm:px-6 pb-5">
-        <p class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data leading-relaxed">
+      <div class="px-fluid pb-4">
+        <p class="text-fluid-xs text-[var(--text-dim)] font-mono-data leading-relaxed">
           Source: MoFPED / UGATSDB Framework — Ministry of Finance, Planning and Economic Development.
           Data is indicative and subject to revision. For official statistics, visit <a href="https://www.mofped.go.ug" target="_blank" rel="noopener" class="text-[var(--accent)] hover:underline">mofped.go.ug</a>
           or the <a href="https://www.ugandamis.com" target="_blank" rel="noopener" class="text-[var(--accent)] hover:underline">UGATSDB portal</a>.
@@ -839,64 +1023,64 @@ try{
 
     <!-- ====== INVESTOR TOOLS ====== -->
     <div id="page-investor" class="hidden flex-1 min-w-0 flex flex-col overflow-y-auto">
-      <div class="px-4 sm:px-6 pt-4 pb-3 border-b border-[var(--line)]">
-        <h2 class="text-[15px] sm:text-[16px] font-bold text-[var(--text-hi)]">Investor Tools</h2>
+      <div class="px-fluid pt-fluid pb-3 border-b border-[var(--line)]">
+        <h2 class="text-fluid-lg font-bold text-[var(--text-hi)]">Investor Tools</h2>
         <p class="text-[10px] text-[var(--text-dim)] mt-1">Dividend net yield calculator &amp; withholding tax projection</p>
       </div>
 
-      <div class="px-4 sm:px-6 py-5">
+      <div class="px-fluid py-fluid">
         <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-4 sm:p-6 max-w-2xl">
-          <h3 class="text-[13px] font-semibold text-[var(--text-hi)] mb-4">Dividend Net Yield Calculator</h3>
+          <h3 class="text-fluid-base font-semibold text-[var(--text-hi)] mb-4">Dividend Net Yield Calculator</h3>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Company</label>
-              <select id="divTicker" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+              <select id="divTicker" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-fluid-sm font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
               </select>
             </div>
             <div>
               <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Shares Owned</label>
-              <input id="divShares" type="number" value="1000" min="1" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+              <input id="divShares" type="number" value="1000" min="1" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-fluid-sm font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
             </div>
             <div>
               <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Investor Origin</label>
               <div class="flex bg-[var(--bg-canvas)] border border-[var(--line)] rounded overflow-hidden">
-                <button id="divOriginEAC" class="flex-1 px-3 py-2 text-[12px] font-medium text-white bg-[var(--accent)] transition-colors">EAC Citizen</button>
-                <button id="divOriginForeign" class="flex-1 px-3 py-2 text-[12px] font-medium text-[var(--text-mid)] transition-colors">Foreign Investor</button>
+                <button id="divOriginEAC" class="flex-1 px-3 py-2 text-fluid-xs font-medium text-white bg-[var(--accent)] transition-colors">EAC Citizen</button>
+                <button id="divOriginForeign" class="flex-1 px-3 py-2 text-fluid-xs font-medium text-[var(--text-mid)] transition-colors">Foreign Investor</button>
               </div>
             </div>
             <div>
               <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">Dividend Per Share (UGX)</label>
-              <input id="divPerShare" type="number" value="5.20" min="0" step="0.01" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-[13px] font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
+              <input id="divPerShare" type="number" value="5.20" min="0" step="0.01" class="w-full bg-[var(--bg-canvas)] border border-[var(--line)] rounded px-3 py-2 text-fluid-sm font-mono-data text-[var(--text-hi)] focus:outline-none focus:border-[var(--accent)]">
             </div>
           </div>
 
-          <button id="divCalcBtn" class="mt-4 px-5 py-2 bg-[var(--accent)] text-white text-[12px] font-semibold rounded hover:opacity-90 transition-opacity">Calculate Net Yield</button>
+          <button id="divCalcBtn" class="mt-4 px-5 py-2 bg-[var(--accent)] text-white text-fluid-xs font-semibold rounded hover:opacity-90 transition-opacity">Calculate Net Yield</button>
 
           <!-- Results -->
           <div id="divResults" class="hidden mt-5 border-t border-[var(--line)] pt-4">
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Gross Dividend</div>
-                <div id="divGross" class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">—</div>
+                <div id="divGross" class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)] mt-0.5">—</div>
               </div>
               <div>
                 <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Withholding Tax</div>
-                <div id="divTax" class="text-[14px] font-bold font-mono-data text-[var(--down)] mt-0.5">—</div>
+                <div id="divTax" class="text-fluid-base font-bold font-mono-data text-[var(--down)] mt-0.5">—</div>
               </div>
               <div>
                 <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Net Dividend</div>
-                <div id="divNet" class="text-[14px] font-bold font-mono-data text-[var(--up)] mt-0.5">—</div>
+                <div id="divNet" class="text-fluid-base font-bold font-mono-data text-[var(--up)] mt-0.5">—</div>
               </div>
               <div>
                 <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">Net Yield %</div>
-                <div id="divYield" class="text-[14px] font-bold font-mono-data text-[var(--accent)] mt-0.5">—</div>
+                <div id="divYield" class="text-fluid-base font-bold font-mono-data text-[var(--accent)] mt-0.5">—</div>
               </div>
             </div>
             <div class="mt-3 text-[10px] text-[var(--text-dim)]" id="divTaxNote"></div>
           </div>
 
-          <button id="divExportPdf" class="hidden mt-4 px-5 py-2 border border-[var(--line)] text-[var(--text-mid)] text-[12px] font-medium rounded hover:bg-[rgba(255,255,255,0.03)] transition-colors">
+          <button id="divExportPdf" class="hidden mt-4 px-5 py-2 border border-[var(--line)] text-[var(--text-mid)] text-fluid-xs font-medium rounded hover:bg-[rgba(255,255,255,0.03)] transition-colors">
             Export PDF Statement
           </button>
         </div>
@@ -904,65 +1088,65 @@ try{
     </div>
 
     <!-- RIGHT SIDEBAR WATCHLIST -->
-    <aside class="hidden lg:flex flex-col w-72 xl:w-80 shrink-0 border-l border-[var(--line)] bg-[var(--bg-panel)]">
+    <aside class="sidebar-right hidden lg:flex flex-col shrink-0 border-l border-[var(--line)] bg-[var(--bg-panel)]">
       <div class="flex flex-col max-h-[450px] overflow-y-auto">
-        <div class="px-3 xl:px-4 py-2.5 sm:py-3 border-b border-[var(--line)] flex items-center justify-between sticky top-0 bg-[var(--bg-panel)] z-10">
-          <h2 id="watchlistTitle" class="text-[12px] sm:text-[13px] font-semibold">Watchlist</h2>
-          <span id="watchlistAsOf" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data"></span>
+        <div class="px-fluid py-2 sm:py-3 border-b border-[var(--line)] flex items-center justify-between sticky top-0 bg-[var(--bg-panel)] z-10">
+          <h2 id="watchlistTitle" class="text-fluid-sm font-semibold">Watchlist</h2>
+          <span id="watchlistAsOf" class="text-fluid-xs text-[var(--text-dim)] font-mono-data"></span>
         </div>
-        <div class="grid grid-cols-[1fr,auto,auto] gap-1.5 sm:gap-2 px-3 xl:px-4 py-1.5 sm:py-2 text-[9px] sm:text-[10px] uppercase tracking-wide text-[var(--text-dim)] border-b border-[var(--line)] sticky top-[42px] bg-[var(--bg-panel)] z-10">
+        <div class="grid grid-cols-[1fr,auto,auto] gap-1.5 sm:gap-2 px-fluid py-1.5 sm:py-2 text-fluid-xs uppercase tracking-wide text-[var(--text-dim)] border-b border-[var(--line)] sticky top-[42px] bg-[var(--bg-panel)] z-10">
           <span>Ticker</span>
           <span class="text-right">Price</span>
           <span class="text-right">Chg %</span>
         </div>
         <div id="watchlistBody" class="flex-1 overflow-y-auto"></div>
       </div>
-      <div class="px-3 xl:px-4 py-2 sm:py-2.5 border-t border-[var(--line)] mt-auto shrink-0">
-        <p id="watchlistNote" class="text-[9px] sm:text-[10px] leading-relaxed text-[var(--text-dim)]"></p>
+      <div class="px-fluid py-2 sm:py-2.5 border-t border-[var(--line)] mt-auto shrink-0">
+        <p id="watchlistNote" class="text-fluid-xs leading-relaxed text-[var(--text-dim)]"></p>
       </div>
     </aside>
   </div>
 
   <!-- MOBILE WATCHLIST (below chart on small screens) -->
   <section class="lg:hidden border-t border-[var(--line)] bg-[var(--bg-panel)]">
-    <div class="px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
-      <h2 id="watchlistTitleM" class="text-[12px] sm:text-[13px] font-semibold">Watchlist</h2>
-      <span id="watchlistAsOfM" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data"></span>
+    <div class="px-fluid py-2 flex items-center justify-between">
+      <h2 id="watchlistTitleM" class="text-fluid-sm font-semibold">Watchlist</h2>
+      <span id="watchlistAsOfM" class="text-fluid-xs text-[var(--text-dim)] font-mono-data"></span>
     </div>
     <div id="watchlistBodyM" class="divide-y divide-[var(--line)]"></div>
   </section>
 
   <!-- ============ NEWS WIRE + CORPORATE ACTIONS ============ -->
   <section class="border-t border-[var(--line)] bg-[var(--bg-canvas)]">
-    <div class="grid grid-cols-1 lg:grid-cols-5 gap-px bg-[var(--line)]">
+    <div class="news-grid grid grid-cols-1 lg:grid-cols-5 gap-px bg-[var(--line)]">
 
       <!-- East Africa News Wire (wider) -->
       <div class="lg:col-span-3 bg-[var(--bg-canvas)] flex flex-col">
-        <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-          <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)] flex items-center gap-2">
+        <div class="px-fluid py-3 border-b border-[var(--line)] flex items-center justify-between">
+          <h3 class="text-fluid-sm font-semibold text-[var(--text-hi)] flex items-center gap-2">
             <span class="w-1.5 h-1.5 rounded-full bg-[var(--up)] animate-pulse"></span>
             East Africa Business News Wire
           </h3>
-          <span id="newsWireAsOf" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data"></span>
+          <span id="newsWireAsOf" class="text-fluid-xs text-[var(--text-dim)] font-mono-data"></span>
         </div>
         <div id="newsWireBody" class="flex-1 overflow-y-auto max-h-[380px]"></div>
       </div>
 
       <!-- Corporate Actions Calendar -->
       <div class="lg:col-span-2 bg-[var(--bg-canvas)] flex flex-col">
-        <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-          <h3 class="text-[12px] sm:text-[13px] font-semibold text-[var(--text-hi)]">Corporate Actions Calendar</h3>
-          <span id="corpActionsAsOf" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data"></span>
+        <div class="px-fluid py-3 border-b border-[var(--line)] flex items-center justify-between">
+            <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)]">Corporate Actions Calendar</h3>
+          <span id="corpActionsAsOf" class="text-fluid-xs text-[var(--text-dim)] font-mono-data"></span>
         </div>
         <div id="corpActionsBody" class="flex-1 overflow-y-auto max-h-[200px]"></div>
 
         <!-- Diaspora Remittance Inflows Tracker -->
         <div class="border-t border-[var(--line)]">
-          <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)] flex items-center justify-between">
-            <h3 class="text-[11px] sm:text-[12px] font-semibold text-[var(--text-hi)]">Diaspora Remittance Inflows</h3>
-            <span id="remittanceAsOf" class="text-[9px] sm:text-[10px] text-[var(--text-dim)] font-mono-data"></span>
+          <div class="px-fluid py-3 border-b border-[var(--line)] flex items-center justify-between">
+              <h3 class="text-fluid-xs font-semibold text-[var(--text-hi)]">Diaspora Remittance Inflows</h3>
+            <span id="remittanceAsOf" class="text-fluid-xs text-[var(--text-dim)] font-mono-data"></span>
           </div>
-          <div id="remittanceBody" class="px-4 sm:px-5 py-3 overflow-y-auto max-h-[160px]"></div>
+          <div id="remittanceBody" class="px-fluid py-3 overflow-y-auto max-h-[160px]"></div>
         </div>
       </div>
 
@@ -1774,9 +1958,9 @@ function renderTicker(){
     const t = trendGlyph(it.change);
     return `
       <div class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 whitespace-nowrap">
-        <span class="text-[10px] sm:text-[12px] text-[var(--text-mid)] font-medium">${it.label}</span>
-        <span class="text-[10px] sm:text-[12px] font-mono-data text-[var(--text-hi)]">${it.value}</span>
-        <span class="text-[9px] sm:text-[11px] font-mono-data ${t.cls}">${t.glyph} ${it.change > 0 ? "+" : ""}${Math.abs(it.change).toFixed(2)}</span>
+        <span class="text-fluid-xs text-[var(--text-mid)] font-medium">${it.label}</span>
+        <span class="text-fluid-xs font-mono-data text-[var(--text-hi)]">${it.value}</span>
+        <span class="text-fluid-xs font-mono-data ${t.cls}">${t.glyph} ${it.change > 0 ? "+" : ""}${Math.abs(it.change).toFixed(2)}</span>
       </div>
       <div class="w-px h-3 sm:h-4 bg-[var(--line)] self-center"></div>
     `;
@@ -1790,7 +1974,7 @@ function renderTicker(){
    ========================================================================== */
 const CATEGORY_META = {
   equities: { title: "USE Equities", note: "Live prices from Mansa API (USE). Updated every 30 minutes during market hours." },
-  bonds: { title: "Fixed Income (Bonds)", note: "T-bill/bond yields from BoU auction results." },
+  bonds: { title: "Sovereign Debt Terminal", note: "T-bill/bond yields from BoU auction results." },
   agri: { title: "Agriculture Spot Prices", note: "Source: WFP / Uganda Coffee Development Authority (UCDA). Wholesale prices from local market surveys." },
   coffee: { title: "Coffee Auction Prices", note: "Source: Uganda Coffee Development Authority (UCDA). Auction prices from NCE dashboard." },
   macro: { title: "Macro Economics", note: "CBR + inflation from World Bank. GDP growth from World Bank." }
@@ -1864,10 +2048,10 @@ function renderWatchlist(){
         <span class="sel-bar absolute left-0 top-0 bottom-0 w-0.5"></span>
         <span class="min-w-0">
           <span class="block text-[11px] sm:text-[12.5px] font-semibold font-mono-data">${s.ticker}</span>
-          <span class="block text-[9.5px] sm:text-[10.5px] text-[var(--text-dim)] truncate">${s.name}</span>
+          <span class="block text-fluid-xs text-[var(--text-dim)] truncate">${s.name}</span>
         </span>
         <span class="text-right text-[11px] sm:text-[12.5px] font-mono-data">${priceDisplay}${unitDisplay}</span>
-        <span class="text-right text-[10.5px] sm:text-[12px] font-mono-data ${colorCls}">${up?"+":""}${s.change_pct.toFixed(2)}%</span>
+        <span class="text-right text-fluid-xs font-mono-data ${colorCls}">${up?"+":""}${s.change_pct.toFixed(2)}%</span>
       </button>
     `;
   }).join("");
@@ -1989,7 +2173,7 @@ function showMacroView(view){
     const t = trendGlyph(STATE.usdUgx.change);
     const el = document.getElementById("chartChange");
     el.textContent = `${t.glyph} ${STATE.usdUgx.change.toFixed(2)}%`;
-    el.className = "text-[13px] font-mono-data font-medium " + t.cls;
+    el.className = "text-fluid-sm font-mono-data font-medium " + t.cls;
     loadChartData(STATE.activeRange, { synthetic: true, basePrice: STATE.usdUgx.value, vol: 8, ticker: "USDUGX" });
     return;
   }
@@ -2009,7 +2193,7 @@ function showMacroView(view){
     document.getElementById("chartPrice").textContent = "—";
     const el = document.getElementById("chartChange");
     el.textContent = "World Bank data loading...";
-    el.className = "text-[13px] font-mono-data font-medium text-[var(--text-dim)]";
+    el.className = "text-fluid-sm font-mono-data font-medium text-[var(--text-dim)]";
     return;
   }
 
@@ -2036,7 +2220,7 @@ function showMacroView(view){
   document.getElementById("chartPrice").textContent = latestCpiVal != null ? latestCpiVal.toFixed(1) + "%" : "—";
   const el2 = document.getElementById("chartChange");
   el2.textContent = latestGdpVal != null ? `GDP growth: ${latestGdpVal.toFixed(1)}%` : "";
-  el2.className = "text-[13px] font-mono-data font-medium text-[var(--text-mid)]";
+  el2.className = "text-fluid-sm font-mono-data font-medium text-[var(--text-mid)]";
 }
 
 /* ==========================================================================
@@ -2047,15 +2231,14 @@ let chart, series;
 function initChart(){
   const wrap = document.getElementById("chartWrap");
   const container = document.getElementById("chartContainer");
-  const isMobile = window.innerWidth < 640;
-  const chartH = Math.min(wrap.clientHeight || 450, 450);
+  const fontSize = Math.max(9, Math.min(11, Math.floor(window.innerWidth / 120)));
   chart = LightweightCharts.createChart(container, {
     width: wrap.clientWidth,
-    height: chartH,
+    height: wrap.clientHeight || 300,
     layout: {
       background: { type: "solid", color: "transparent" },
       textColor: "#8b97a8",
-      fontSize: isMobile ? 10 : 11,
+      fontSize: fontSize,
       fontFamily: "JetBrains Mono, ui-monospace, monospace"
     },
     grid: {
@@ -2063,12 +2246,12 @@ function initChart(){
       horzLines: { color: "#111111" }
     },
     crosshair: {
-      mode: isMobile ? LightweightCharts.CrosshairMode.Normal : LightweightCharts.CrosshairMode.Normal,
+      mode: LightweightCharts.CrosshairMode.Normal,
       vertLine: { color: "#4c8dff55", labelBackgroundColor: "#4c8dff" },
       horzLine: { color: "#4c8dff55", labelBackgroundColor: "#4c8dff" }
     },
     rightPriceScale: { borderColor: "#1a1a1a", scaleMargins: { top: 0.1, bottom: 0.1 } },
-    timeScale: { borderColor: "#1a1a1a", timeVisible: true, rightOffset: isMobile ? 2 : 5 },
+    timeScale: { borderColor: "#1a1a1a", timeVisible: true, rightOffset: window.innerWidth < 640 ? 2 : 5 },
     autoSize: false
   });
 
@@ -2081,19 +2264,25 @@ function initChart(){
     wickDownColor: "#ef5350"
   });
 
-  let resizeTimeout;
-  window.addEventListener("resize", () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-      const newIsMobile = window.innerWidth < 640;
-      chart.applyOptions({
-        width: wrap.clientWidth,
-        height: Math.min(wrap.clientHeight || 450, 450),
-        layout: { fontSize: newIsMobile ? 10 : 11 },
-        timeScale: { rightOffset: newIsMobile ? 2 : 5 }
-      });
-    }, 100);
+  /* Fluid resize via ResizeObserver — adapts to ANY screen change */
+  let resizeRaf;
+  const ro = new ResizeObserver(entries => {
+    if(!entries.length) return;
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => {
+      const { width, height } = entries[0].contentRect;
+      if(width > 0 && height > 0){
+        const fs = Math.max(9, Math.min(11, Math.floor(width / 120)));
+        chart.applyOptions({
+          width: width,
+          height: height,
+          layout: { fontSize: fs },
+          timeScale: { rightOffset: width < 400 ? 1 : width < 640 ? 2 : 5 }
+        });
+      }
+    });
   });
+  ro.observe(wrap);
 }
 
 const RANGE_CONFIG = {
@@ -2201,7 +2390,7 @@ async function loadStockChart(ticker){
   let changeText = `${t.glyph} ${stock.change_pct > 0 ? "+" : ""}${stock.change_pct.toFixed(2)}%`;
   if(stock.unit) changeText += ` <span class="text-[10px] text-[var(--text-dim)]">${stock.unit}</span>`;
   el.innerHTML = changeText;
-  el.className = "text-[13px] font-mono-data font-medium " + t.cls;
+  el.className = "text-fluid-sm font-mono-data font-medium " + t.cls;
 
   const loadingHtml = '<div id="chartLoading" class="absolute inset-0 flex items-center justify-center bg-[var(--bg-canvas)]/80 z-10"><span class="text-[12px] text-[var(--text-mid)] font-mono-data animate-pulse">Loading chart...</span></div>';
   const container = document.getElementById("chartContainer");
@@ -2268,14 +2457,14 @@ function updateChartHeader(){
   let changeText = `${t.glyph} ${stock.change_pct > 0 ? "+" : ""}${stock.change_pct.toFixed(2)}%`;
   if(stock.unit) changeText += ` <span class="text-[10px] text-[var(--text-dim)]">${stock.unit}</span>`;
   el.innerHTML = changeText;
-  el.className = "text-[13px] font-mono-data font-medium " + t.cls;
+  el.className = "text-fluid-sm font-mono-data font-medium " + t.cls;
 }
 
 function renderRangeButtons(){
   const ranges = ["1D","1W","1M","3M","1Y","ALL"];
   const wrap = document.getElementById("rangeButtons");
   wrap.innerHTML = ranges.map(r => `
-    <button data-range="${r}" class="range-btn ${r===STATE.activeRange?"active":""} px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded text-[10px] sm:text-[11.5px] font-medium text-[var(--text-mid)] font-mono-data">${r}</button>
+    <button data-range="${r}" class="range-btn ${r===STATE.activeRange?"active":""} px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded text-fluid-xs font-medium text-[var(--text-mid)] font-mono-data">${r}</button>
   `).join("");
   wrap.querySelectorAll("[data-range]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -2363,10 +2552,10 @@ function renderAfricanTicker(indices){
     const flag = idx.country === "Uganda" ? "UG" : idx.country === "Kenya" ? "KE" : idx.country === "Tanzania" ? "TZ" : idx.country === "Rwanda" ? "RW" : "ZA";
     return `
       <div class="flex items-center gap-2 px-4 sm:px-6 whitespace-nowrap">
-        <span class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-panel-2)] text-[var(--text-dim)] font-mono-data font-medium">${flag}</span>
-        <span class="text-[10px] sm:text-[11px] text-[var(--text-mid)] font-medium">${idx.name}</span>
-        <span class="text-[10px] sm:text-[11px] font-mono-data text-[var(--text-hi)]">${idx.value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
-        <span class="text-[9px] sm:text-[10px] font-mono-data ${t.cls}">${t.glyph} ${idx.change_pct > 0 ? "+" : ""}${idx.change_pct.toFixed(2)}%</span>
+        <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[var(--bg-panel-2)] text-[var(--text-dim)] font-mono-data font-medium">${flag}</span>
+        <span class="text-fluid-xs text-[var(--text-mid)] font-medium">${idx.name}</span>
+        <span class="text-fluid-xs font-mono-data text-[var(--text-hi)]">${idx.value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+        <span class="text-fluid-xs font-mono-data ${t.cls}">${t.glyph} ${idx.change_pct > 0 ? "+" : ""}${idx.change_pct.toFixed(2)}%</span>
       </div>
       <div class="w-px h-3 sm:h-4 bg-[var(--line)] self-center"></div>
     `;
@@ -2386,10 +2575,10 @@ function renderPanAfricanIndices(indices){
     const flag = idx.country === "Uganda" ? "UG" : idx.country === "Kenya" ? "KE" : idx.country === "Tanzania" ? "TZ" : "RW";
     return `
       <div class="flex items-center gap-2 px-4 sm:px-5 whitespace-nowrap">
-        <span class="text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded bg-[var(--bg-panel-2)] text-[var(--text-dim)] font-mono-data font-medium">${flag}</span>
-        <span class="text-[11px] sm:text-[12px] text-[var(--text-mid)] font-semibold">${idx.name}</span>
-        <span class="text-[11px] sm:text-[12px] font-mono-data text-[var(--text-hi)]">${idx.value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
-        <span class="text-[10px] font-mono-data ${t.cls}">${t.glyph} ${idx.change_pct > 0 ? "+" : ""}${idx.change_pct.toFixed(2)}%</span>
+        <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[var(--bg-panel-2)] text-[var(--text-dim)] font-mono-data font-medium">${flag}</span>
+        <span class="text-fluid-sm text-[var(--text-mid)] font-semibold">${idx.name}</span>
+        <span class="text-fluid-sm font-mono-data text-[var(--text-hi)]">${idx.value.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+        <span class="text-fluid-xs font-mono-data ${t.cls}">${t.glyph} ${idx.change_pct > 0 ? "+" : ""}${idx.change_pct.toFixed(2)}%</span>
       </div>
       <div class="w-px h-3 sm:h-4 bg-[var(--line)] self-center"></div>
     `;
@@ -2434,7 +2623,7 @@ function renderNewsWire(items){
           <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(76,141,255,0.1)] text-[var(--accent)] font-mono-data font-medium">${n.source}</span>
           <span class="text-[9px] text-[var(--text-dim)] font-mono-data">${timeAgo}</span>
         </div>
-        <p class="text-[11px] sm:text-[12px] text-[var(--text-hi)] leading-snug">${n.title}</p>
+        <p class="text-fluid-sm text-[var(--text-hi)] leading-snug">${n.title}</p>
       </a>
     `;
   }).join("");
@@ -2459,11 +2648,11 @@ function renderCorpActions(items){
     return `
       <div class="px-4 sm:px-5 py-3 border-b border-[var(--line)]">
         <div class="flex items-center justify-between mb-1">
-          <span class="text-[10px] font-mono-data font-bold text-[var(--text-hi)]">${c.company}</span>
+          <span class="text-fluid-xs font-mono-data font-bold text-[var(--text-hi)]">${c.company}</span>
           <span class="text-[9px] font-mono-data ${isPast ? 'text-[var(--text-dim)]' : urgency}">${isPast ? "Passed" : daysUntil === 0 ? "Today" : daysUntil + "d"}</span>
         </div>
-        <p class="text-[11px] text-[var(--text-hi)] font-medium">${c.event}</p>
-        <p class="text-[10px] text-[var(--text-dim)] mt-0.5">${c.details} — ${c.date}</p>
+        <p class="text-fluid-sm text-[var(--text-hi)] font-medium">${c.event}</p>
+        <p class="text-fluid-xs text-[var(--text-dim)] mt-0.5">${c.details} — ${c.date}</p>
       </div>
     `;
   }).join("");
@@ -2494,12 +2683,12 @@ function renderRemittanceInflows(data){
         const barWidth = (m.amount_m / maxAmount) * 100;
         return `
           <div class="flex items-center gap-2">
-            <span class="text-[9px] text-[var(--text-dim)] w-14 shrink-0">${m.month.split(' ')[0]}</span>
+            <span class="text-fluid-xs text-[var(--text-dim)] w-14 shrink-0">${m.month.split(' ')[0]}</span>
             <div class="flex-1 h-1.5 bg-[var(--bg-panel)] rounded overflow-hidden">
               <div class="h-full bg-[var(--accent)] rounded" style="width:${barWidth}%"></div>
             </div>
-            <span class="text-[10px] font-mono-data text-[var(--text-hi)] w-12 text-right">$${m.amount_m.toFixed(0)}M</span>
-            <span class="text-[9px] font-mono-data ${t.cls} w-10 text-right">${t.glyph}${m.change_pct > 0 ? "+" : ""}${m.change_pct.toFixed(1)}%</span>
+            <span class="text-fluid-xs font-mono-data text-[var(--text-hi)] w-12 text-right">$${m.amount_m.toFixed(0)}M</span>
+            <span class="text-fluid-xs font-mono-data ${t.cls} w-10 text-right">${t.glyph}${m.change_pct > 0 ? "+" : ""}${m.change_pct.toFixed(1)}%</span>
           </div>
         `;
       }).join("")}
@@ -2642,7 +2831,7 @@ async function initMarketSummaryPage(){
     const chg = data.asi.change || 0;
     const glyph = chg > 0 ? "▲" : chg < 0 ? "▼" : "—";
     asiChgEl.textContent = glyph + " " + (chg > 0 ? "+" : "") + chg.toFixed(2) + "%";
-    asiChgEl.className = "text-[13px] sm:text-[14px] font-mono-data font-bold mt-2 " + (chg > 0 ? "text-[var(--up)]" : chg < 0 ? "text-[var(--down)]" : "text-[var(--flat)]");
+    asiChgEl.className = "text-fluid-base font-mono-data font-bold mt-2 " + (chg > 0 ? "text-[var(--up)]" : chg < 0 ? "text-[var(--down)]" : "text-[var(--flat)]");
   }
 
   const mcapEl = document.getElementById("ms-mcap-value");
@@ -2671,7 +2860,7 @@ async function initMarketSummaryPage(){
   }
   if(statusText){
     statusText.textContent = data.status.text;
-    statusText.className = "text-[28px] sm:text-[32px] font-bold font-mono-data leading-none " + (data.status.open ? "text-[var(--up)]" : "text-[var(--down)]");
+    statusText.className = "text-fluid-2xl font-bold font-mono-data leading-none " + (data.status.open ? "text-[var(--up)]" : "text-[var(--down)]");
   }
   if(statusNext) statusNext.textContent = data.status.nextOpen;
 }
@@ -2758,14 +2947,14 @@ function renderCentralRates(){
         <td class="px-4 sm:px-5 py-3">
           <div class="flex items-center gap-2">
             <span class="text-[9px] px-1.5 py-0.5 rounded bg-[var(--bg-panel-2)] text-[var(--text-dim)] font-mono-data font-bold">${flag}</span>
-            <span class="text-[11px] sm:text-[12px] text-[var(--text-hi)] font-medium">${r.bank}</span>
+            <span class="text-fluid-sm text-[var(--text-hi)] font-medium">${r.bank}</span>
           </div>
         </td>
         <td class="px-4 sm:px-5 py-3 text-right">
-          <span class="text-[13px] sm:text-[14px] font-bold font-mono-data text-[var(--text-hi)]">${r.rate.toFixed(2)}%</span>
+          <span class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)]">${r.rate.toFixed(2)}%</span>
         </td>
         <td class="px-4 sm:px-5 py-3 text-right">
-          <span class="text-[11px] font-mono-data ${cls}">${r.change > 0 ? "+" : ""}${r.change.toFixed(2)}%</span>
+          <span class="text-fluid-xs font-mono-data ${cls}">${r.change > 0 ? "+" : ""}${r.change.toFixed(2)}%</span>
         </td>
         <td class="px-4 sm:px-5 py-3 text-right hidden sm:table-cell">
           <span class="text-[10px] text-[var(--text-dim)] font-mono-data">${r.lastMeeting}</span>
@@ -2785,9 +2974,9 @@ function renderGlobalPairsTicker(){
     const t = trendGlyph(p.change);
     return `
       <div class="flex items-center gap-2 px-4 sm:px-5 whitespace-nowrap">
-        <span class="text-[11px] sm:text-[12px] text-[var(--text-mid)] font-semibold">${p.pair}</span>
-        <span class="text-[11px] sm:text-[12px] font-mono-data text-[var(--text-hi)]">${p.value.toFixed(p.value > 100 ? 2 : 4)}</span>
-        <span class="text-[10px] font-mono-data ${t.cls}">${t.glyph} ${p.change > 0 ? "+" : ""}${p.change.toFixed(2)}%</span>
+        <span class="text-fluid-sm text-[var(--text-mid)] font-semibold">${p.pair}</span>
+        <span class="text-fluid-sm font-mono-data text-[var(--text-hi)]">${p.value.toFixed(p.value > 100 ? 2 : 4)}</span>
+        <span class="text-fluid-xs font-mono-data ${t.cls}">${t.glyph} ${p.change > 0 ? "+" : ""}${p.change.toFixed(2)}%</span>
       </div>
       <div class="w-px h-3 sm:h-4 bg-[var(--line)] self-center"></div>
     `;
@@ -2825,24 +3014,29 @@ function initBondsPage(){
   document.getElementById("tbillTableBody").innerHTML = TBILL_DATA.map(b => {
     const cls = b.change > 0 ? "text-[var(--up)]" : b.change < 0 ? "text-[var(--down)]" : "text-[var(--flat)]";
     return `<tr class="border-b border-[var(--line)] last:border-0 hover:bg-[rgba(255,255,255,0.015)] transition-colors">
-      <td class="px-4 sm:px-5 py-3"><span class="text-[11px] sm:text-[12px] text-[var(--text-hi)] font-medium">${b.tenor}</span></td>
-      <td class="px-4 sm:px-5 py-3 text-right"><span class="text-[13px] sm:text-[14px] font-bold font-mono-data text-[var(--text-hi)]">${b.yield.toFixed(2)}%</span></td>
-      <td class="px-4 sm:px-5 py-3 text-right"><span class="text-[10px] font-mono-data ${cls}">${b.change >= 0 ? "+" : ""}${b.change.toFixed(2)}</span></td>
-      <td class="px-4 sm:px-5 py-3 text-right hidden sm:table-cell"><span class="text-[10px] text-[var(--text-dim)] font-mono-data">${b.auctionDate}</span></td>
+      <td class="px-fluid py-3"><span class="text-fluid-sm text-[var(--text-hi)] font-medium">${b.tenor}</span></td>
+      <td class="px-fluid py-3 text-right"><span class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)]">${b.yield.toFixed(2)}%</span></td>
+      <td class="px-fluid py-3 text-right"><span class="text-fluid-xs font-mono-data ${cls}">${b.change >= 0 ? "+" : ""}${b.change.toFixed(2)}</span></td>
+      <td class="px-fluid py-3 text-right hidden sm:table-cell"><span class="text-fluid-xs text-[var(--text-dim)] font-mono-data">${b.auctionDate}</span></td>
     </tr>`;
   }).join("");
 
   document.getElementById("tbondTableBody").innerHTML = TBOND_DATA.map(b => {
     const cls = b.change > 0 ? "text-[var(--up)]" : b.change < 0 ? "text-[var(--down)]" : "text-[var(--flat)]";
     return `<tr class="border-b border-[var(--line)] last:border-0 hover:bg-[rgba(255,255,255,0.015)] transition-colors">
-      <td class="px-4 sm:px-5 py-3"><span class="text-[11px] sm:text-[12px] text-[var(--text-hi)] font-medium">${b.tenor}</span></td>
-      <td class="px-4 sm:px-5 py-3 text-right"><span class="text-[13px] sm:text-[14px] font-bold font-mono-data text-[var(--text-hi)]">${b.yield.toFixed(2)}%</span></td>
-      <td class="px-4 sm:px-5 py-3 text-right"><span class="text-[10px] font-mono-data ${cls}">${b.change >= 0 ? "+" : ""}${b.change.toFixed(2)}</span></td>
-      <td class="px-4 sm:px-5 py-3 text-right hidden sm:table-cell"><span class="text-[10px] text-[var(--text-dim)] font-mono-data">${b.coupon.toFixed(2)}%</span></td>
+      <td class="px-fluid py-3"><span class="text-fluid-sm text-[var(--text-hi)] font-medium">${b.tenor}</span></td>
+      <td class="px-fluid py-3 text-right"><span class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)]">${b.yield.toFixed(2)}%</span></td>
+      <td class="px-fluid py-3 text-right"><span class="text-fluid-xs font-mono-data ${cls}">${b.change >= 0 ? "+" : ""}${b.change.toFixed(2)}</span></td>
+      <td class="px-fluid py-3 text-right hidden sm:table-cell"><span class="text-fluid-xs text-[var(--text-dim)] font-mono-data">${b.coupon.toFixed(2)}%</span></td>
     </tr>`;
   }).join("");
 
   renderYieldCurve();
+  renderInterbankChart();
+  renderTbillBarChart();
+  renderExchangeRateGrid();
+  renderCreditPieChart();
+  renderFinancialSoundness();
 }
 
 let yieldCurveChart = null;
@@ -2889,6 +3083,199 @@ function renderYieldCurve(){
       }
     }
   });
+}
+
+/* ==========================================================================
+   SOVEREIGN DEBT TERMINAL — Central Bank Statistics Dashboard
+   ========================================================================== */
+
+/* --- Interbank Rates Data (BoU overnight & 7-day) --- */
+const INTERBANK_DATA = {
+  labels: ["Mon","Tue","Wed","Thu","Fri","Mon","Tue","Wed","Thu","Fri","Mon","Tue","Wed","Thu","Fri"],
+  overnight: [10.12,10.08,10.15,10.03,9.98,10.05,10.11,10.07,10.02,9.95,10.08,10.14,10.06,10.01,9.97],
+  sevenDay:  [10.45,10.42,10.48,10.38,10.33,10.40,10.46,10.41,10.36,10.30,10.43,10.49,10.40,10.35,10.31]
+};
+
+let interbankChart = null;
+function renderInterbankChart(){
+  const ctx = document.getElementById("interbankChartCanvas");
+  if(!ctx) return;
+  if(interbankChart) interbankChart.destroy();
+  const asOf = document.getElementById("interbankAsOf");
+  if(asOf) asOf.textContent = "as of " + new Date().toISOString().slice(0,10);
+
+  interbankChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: INTERBANK_DATA.labels,
+      datasets: [
+        { label: "Overnight", data: INTERBANK_DATA.overnight, borderColor: "#4c8dff", backgroundColor: "rgba(76,141,255,0.06)", fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 },
+        { label: "7-Day", data: INTERBANK_DATA.sevenDay, borderColor: "#26a69a", backgroundColor: "rgba(38,166,154,0.06)", fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: "#8b97a8", font: { size: 10, family: "JetBrains Mono, monospace" }, boxWidth: 12, padding: 12 } } },
+      scales: {
+        x: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 } } },
+        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 }, callback: v => v.toFixed(1) + "%" } }
+      }
+    }
+  });
+}
+
+/* --- T-Bill Yields Bar Chart (60-min cache) --- */
+const TBILL_BAR_CACHE_KEY = "bou_tbill_bar_v1";
+const TBILL_BAR_TTL = 60 * 60 * 1000;
+
+const TBILL_BAR_DATA = [
+  { tenor: "91-Day", yield: BOU_YIELDS.tbill91D.yield, color: "#4c8dff" },
+  { tenor: "182-Day", yield: BOU_YIELDS.tbill182D.yield, color: "#26a69a" },
+  { tenor: "364-Day", yield: BOU_YIELDS.tbill364D.yield, color: "#ef5350" },
+  { tenor: "2-Yr Bond", yield: BOU_YIELDS.bond2Y.yield, color: "#ffb74d" },
+  { tenor: "5-Yr Bond", yield: BOU_YIELDS.bond5Y.yield, color: "#ba68c8" },
+  { tenor: "10-Yr Bond", yield: BOU_YIELDS.bond10Y.yield, color: "#4dd0e1" },
+  { tenor: "15-Yr Bond", yield: BOU_YIELDS.bond15Y.yield, color: "#aed581" }
+];
+
+let tbillBarChart = null;
+function renderTbillBarChart(){
+  const ctx = document.getElementById("tbillBarCanvas");
+  if(!ctx) return;
+  if(tbillBarChart) tbillBarChart.destroy();
+  const asOf = document.getElementById("tbillChartAsOf");
+  if(asOf) asOf.textContent = "as of " + new Date().toISOString().slice(0,10);
+
+  tbillBarChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: TBILL_BAR_DATA.map(d => d.tenor),
+      datasets: [{
+        label: "Yield %",
+        data: TBILL_BAR_DATA.map(d => d.yield),
+        backgroundColor: TBILL_BAR_DATA.map(d => d.color + "33"),
+        borderColor: TBILL_BAR_DATA.map(d => d.color),
+        borderWidth: 1.5,
+        borderRadius: 3,
+        barPercentage: 0.7
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: "#56616f", font: { size: 9, family: "JetBrains Mono, monospace" } } },
+        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 }, callback: v => v.toFixed(1) + "%" }, beginAtZero: false, min: 8 }
+      }
+    }
+  });
+}
+
+/* --- Exchange Rate Grid (BoU official mid-rates) --- */
+const BOU_FX_MID_RATES = [
+  { pair: "USD/UGX", rate: 3720.00, flag: "US", change: 0.15 },
+  { pair: "KES/UGX", rate: 28.65, flag: "KE", change: 0.00 },
+  { pair: "GBP/UGX", rate: 4718.50, flag: "GB", change: -0.08 },
+  { pair: "EUR/UGX", rate: 4035.20, flag: "EU", change: 0.22 }
+];
+
+function renderExchangeRateGrid(){
+  const grid = document.getElementById("exchangeRateGrid");
+  const asOf = document.getElementById("fxGridAsOf");
+  if(!grid) return;
+  if(asOf) asOf.textContent = "as of " + new Date().toISOString().slice(0,10);
+
+  grid.innerHTML = BOU_FX_MID_RATES.map(fx => {
+    const cls = fx.change > 0 ? "text-[var(--up)]" : fx.change < 0 ? "text-[var(--down)]" : "text-[var(--flat)]";
+    const glyph = fx.change > 0 ? "▲" : fx.change < 0 ? "▼" : "—";
+    return `
+      <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(76,141,255,0.1)] text-[var(--accent)] font-mono-data font-bold">${fx.flag}</span>
+          <span class="text-fluid-sm text-[var(--text-mid)] font-medium">${fx.pair}</span>
+        </div>
+        <div class="text-fluid-xl font-bold font-mono-data text-[var(--text-hi)]">${fx.rate.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+        <div class="text-fluid-xs font-mono-data ${cls} mt-1">${glyph} ${fx.change > 0 ? "+" : ""}${fx.change.toFixed(2)}%</div>
+        <div class="text-[9px] text-[var(--text-dim)] mt-1">BoU Daily Mid-Rate</div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* --- Credit by Sector Pie Chart (BoU Financial Stability) --- */
+const CREDIT_SECTOR_DATA = {
+  labels: ["Trade & Commerce", "Agriculture", "Manufacturing", "Personal & Household", "Transport & Communication", "Building & Construction", "Mining & Quarrying", "Other"],
+  values: [28.4, 18.6, 14.2, 12.8, 9.5, 7.3, 3.1, 6.1],
+  colors: ["#4c8dff","#26a69a","#ef5350","#ffb74d","#ba68c8","#4dd0e1","#aed581","#78909c"]
+};
+
+let creditPieChart = null;
+function renderCreditPieChart(){
+  const ctx = document.getElementById("creditPieCanvas");
+  if(!ctx) return;
+  if(creditPieChart) creditPieChart.destroy();
+
+  creditPieChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: CREDIT_SECTOR_DATA.labels,
+      datasets: [{
+        data: CREDIT_SECTOR_DATA.values,
+        backgroundColor: CREDIT_SECTOR_DATA.colors.map(c => c + "cc"),
+        borderColor: CREDIT_SECTOR_DATA.colors,
+        borderWidth: 1.5,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "55%",
+      plugins: {
+        legend: {
+          position: "right",
+          labels: { color: "#8b97a8", font: { size: 10, family: "JetBrains Mono, monospace" }, boxWidth: 10, padding: 8 }
+        },
+        tooltip: {
+          callbacks: { label: function(ctx){ return ctx.label + ": " + ctx.parsed + "%"; } }
+        }
+      }
+    }
+  });
+}
+
+/* --- Financial Soundness Indicators (Basel III / BoU) --- */
+const SOUNDNESS_DATA = [
+  { label: "Regulatory Capital / Risk-Weighted Assets", value: "18.5%", benchmark: "Min 10.0%", status: "healthy", pct: 85 },
+  { label: "Non-Performing Loans (NPL) Ratio", value: "5.2%", benchmark: "Below 5.0%", status: "watch", pct: 52 },
+  { label: "Liquid Assets / Total Deposits", value: "32.4%", benchmark: "Min 20.0%", status: "healthy", pct: 81 }
+];
+
+function renderFinancialSoundness(){
+  const body = document.getElementById("soundnessBody");
+  if(!body) return;
+
+  body.innerHTML = SOUNDNESS_DATA.map(s => {
+    const statusColor = s.status === "healthy" ? "var(--up)" : s.status === "watch" ? "var(--accent)" : "var(--down)";
+    const statusLabel = s.status === "healthy" ? "PASS" : s.status === "watch" ? "WATCH" : "ALERT";
+    return `
+      <div class="bg-[var(--bg-panel)] border border-[var(--line)] rounded-lg p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-fluid-xs text-[var(--text-dim)] uppercase tracking-wide leading-tight flex-1 pr-2">${s.label}</span>
+          <span class="text-[8px] px-1.5 py-0.5 rounded font-mono-data font-bold shrink-0" style="background:${statusColor}22;color:${statusColor}">${statusLabel}</span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-fluid-xl font-bold font-mono-data text-[var(--text-hi)]">${s.value}</span>
+        </div>
+        <div class="mt-2 h-1.5 bg-[var(--bg-canvas)] rounded overflow-hidden">
+          <div class="h-full rounded transition-all duration-700" style="width:${s.pct}%;background:${statusColor}"></div>
+        </div>
+        <div class="flex justify-between mt-1">
+          <span class="text-[8px] text-[var(--text-dim)]">0%</span>
+          <span class="text-[8px] text-[var(--text-dim)]">${s.benchmark}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 /* --- MACRO INTELLIGENCE PAGE --- */
@@ -3075,9 +3462,9 @@ function renderWBIndicators(){
   ];
   document.getElementById("wbIndicatorsBody").innerHTML = indicators.map(i => `
     <div class="bg-[var(--bg-canvas)] border border-[var(--line)] rounded p-3">
-      <div class="text-[9px] uppercase tracking-wide text-[var(--text-dim)]">${i.label}</div>
-      <div class="text-[14px] font-bold font-mono-data text-[var(--text-hi)] mt-0.5">${i.value}</div>
-      <div class="text-[9px] text-[var(--text-dim)]">${i.period}</div>
+      <div class="text-fluid-xs uppercase tracking-wide text-[var(--text-dim)]">${i.label}</div>
+      <div class="text-fluid-base font-bold font-mono-data text-[var(--text-hi)] mt-0.5">${i.value}</div>
+      <div class="text-fluid-xs text-[var(--text-dim)]">${i.period}</div>
     </div>
   `).join("");
 }
@@ -3108,11 +3495,11 @@ function setInvestorOrigin(origin){
   const eac = document.getElementById("divOriginEAC");
   const foreign = document.getElementById("divOriginForeign");
   if(origin === "eac"){
-    eac.className = "flex-1 px-3 py-2 text-[12px] font-medium text-white bg-[var(--accent)] transition-colors";
-    foreign.className = "flex-1 px-3 py-2 text-[12px] font-medium text-[var(--text-mid)] transition-colors";
+    eac.className = "flex-1 px-3 py-2 text-fluid-xs font-medium text-white bg-[var(--accent)] transition-colors";
+    foreign.className = "flex-1 px-3 py-2 text-fluid-xs font-medium text-[var(--text-mid)] transition-colors";
   } else {
-    foreign.className = "flex-1 px-3 py-2 text-[12px] font-medium text-white bg-[var(--accent)] transition-colors";
-    eac.className = "flex-1 px-3 py-2 text-[12px] font-medium text-[var(--text-mid)] transition-colors";
+    foreign.className = "flex-1 px-3 py-2 text-fluid-xs font-medium text-white bg-[var(--accent)] transition-colors";
+    eac.className = "flex-1 px-3 py-2 text-fluid-xs font-medium text-[var(--text-mid)] transition-colors";
   }
 }
 
