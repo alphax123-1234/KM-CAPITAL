@@ -39,19 +39,21 @@ try{
 } catch(e){}
 </script>
 
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg-canvas: #000000;
-    --bg-panel:  #050505;
-    --bg-panel-2:#0a0a0a;
-    --line:      #1a1a1a;
-    --text-hi:   #e6ebf2;
-    --text-mid:  #8b97a8;
-    --text-dim:  #56616f;
-    --up:        #26a69a;
-    --down:      #ef5350;
-    --flat:      #6b7684;
-    --accent:    #4c8dff;
+    --bg-canvas: #0b1220;
+    --bg-panel:  #111a2b;
+    --bg-panel-2:#16223a;
+    --line:      #243049;
+    --text-hi:   #eaf0fa;
+    --text-mid:  #a9b6cb;
+    --text-dim:  #8392a9;
+    --up:        #34d399;
+    --down:      #fb7185;
+    --flat:      #8392a9;
+    --accent:    #60a5fa;
     --fluid-px:  clamp(0.5rem, 2vw, 1.5rem);
     --fluid-py:  clamp(0.5rem, 1.5vw, 1rem);
     --fluid-gap: clamp(0.25rem, 1vw, 0.75rem);
@@ -61,8 +63,8 @@ try{
 
   ::-webkit-scrollbar{ width:6px; height:6px; }
   ::-webkit-scrollbar-track{ background:transparent; }
-  ::-webkit-scrollbar-thumb{ background:#1a1a1a; border-radius:4px; }
-  ::-webkit-scrollbar-thumb:hover{ background:#2a2a2a; }
+  ::-webkit-scrollbar-thumb{ background:#243049; border-radius:4px; }
+  ::-webkit-scrollbar-thumb:hover{ background:#3a4a6b; }
 
   .scrollbar-none::-webkit-scrollbar{ display:none; }
   .scrollbar-none{ -ms-overflow-style:none; scrollbar-width:none; }
@@ -79,11 +81,11 @@ try{
   }
 
   .nav-link{ transition: background-color .15s ease, color .15s ease; }
-  .nav-link.active{ background: rgba(76,141,255,0.12); color: var(--text-hi); border-left-color: var(--accent); }
+  .nav-link.active{ background: rgba(96,165,250,0.12); color: var(--text-hi); border-left-color: var(--accent); }
   .nav-link:not(.active):hover{ background: rgba(255,255,255,0.03); }
 
   .nav-link-m{ transition: background-color .15s ease, color .15s ease; }
-  .nav-link-m.active{ background: rgba(76,141,255,0.15); color: var(--text-hi); }
+  .nav-link-m.active{ background: rgba(96,165,250,0.15); color: var(--text-hi); }
 
   .header-nav-link{ transition: color .15s ease; border-bottom: 2px solid transparent; padding-bottom: 2px; }
   .header-nav-link:hover{ color: var(--text-hi); }
@@ -93,7 +95,7 @@ try{
   .macro-view-btn.active{ background:var(--accent); color:#fff; }
   .watch-row{ transition: background-color .12s ease; cursor:pointer; }
   .watch-row:hover{ background: rgba(255,255,255,0.035); }
-  .watch-row.selected{ background: rgba(76,141,255,0.10); }
+  .watch-row.selected{ background: rgba(96,165,250,0.10); }
   .watch-row.selected .sel-bar{ background: var(--accent); }
 
   .badge-dot{ box-shadow: 0 0 0 3px rgba(255,255,255,0.04); }
@@ -126,8 +128,8 @@ try{
   .dot-closed{ background: var(--down); }
 
   @keyframes pulse-green{
-    0%,100%{ box-shadow: 0 0 0 0 rgba(38,166,154,0.5); }
-    50%{ box-shadow: 0 0 0 8px rgba(38,166,154,0); }
+    0%,100%{ box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+    50%{ box-shadow: 0 0 0 8px rgba(52,211,153,0); }
   }
 
   @keyframes pulse-text{
@@ -138,25 +140,25 @@ try{
   #newsWireBody::-webkit-scrollbar,
   #corpActionsBody::-webkit-scrollbar{ width:4px; }
   #newsWireBody::-webkit-scrollbar-thumb,
-  #corpActionsBody::-webkit-scrollbar-thumb{ background:#1a1a1a; border-radius:4px; }
+  #corpActionsBody::-webkit-scrollbar-thumb{ background:#243049; border-radius:4px; }
   #newsWireBody::-webkit-scrollbar-thumb:hover,
-  #corpActionsBody::-webkit-scrollbar-thumb:hover{ background:#2a2a2a; }
+  #corpActionsBody::-webkit-scrollbar-thumb:hover{ background:#3a4a6b; }
 
   .bou-wire-container{ max-height: clamp(160px, 30vh, 320px); overflow-y:auto; }
   .bou-wire-container::-webkit-scrollbar{ width:4px; }
   .bou-wire-container::-webkit-scrollbar-track{ background:transparent; }
-  .bou-wire-container::-webkit-scrollbar-thumb{ background:#1a1a1a; border-radius:4px; }
-  .bou-wire-container::-webkit-scrollbar-thumb:hover{ background:#2a2a2a; }
+  .bou-wire-container::-webkit-scrollbar-thumb{ background:#243049; border-radius:4px; }
+  .bou-wire-container::-webkit-scrollbar-thumb:hover{ background:#3a4a6b; }
   .bou-wire-item{ border-bottom:1px solid var(--line); transition: background-color .12s ease; }
   .bou-wire-item:last-child{ border-bottom:none; }
   .bou-wire-item:hover{ background:rgba(255,255,255,0.02); }
 
   [id^="page-"]{ min-height:0; }
   [id^="page-"]::-webkit-scrollbar{ width:4px; }
-  [id^="page-"]::-webkit-scrollbar-thumb{ background:#1a1a1a; border-radius:4px; }
-  [id^="page-"]::-webkit-scrollbar-thumb:hover{ background:#2a2a2a; }
+  [id^="page-"]::-webkit-scrollbar-thumb{ background:#243049; border-radius:4px; }
+  [id^="page-"]::-webkit-scrollbar-thumb:hover{ background:#3a4a6b; }
 
-  select option{ background:#0a0a0a; color:#e6ebf2; }
+  select option{ background:#16223a; color:#eaf0fa; }
 
   /* ================================================================
      FLUID RESPONSIVENESS — adapts to ANY screen size
@@ -255,6 +257,170 @@ try{
     #chartWrap{ margin-left: 0.25rem; margin-right: 0.25rem; }
     .chart-header-row{ flex-wrap: wrap; }
   }
+
+  /* ================================================================
+     MODERN SKIN — calm slate-navy palette, soft cards, even spacing
+     (high-specificity selectors so they win over the Tailwind CDN)
+     ================================================================ */
+  html{ scroll-behavior:smooth; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+  html body{
+    background:
+      radial-gradient(1100px 420px at 78% -8%, rgba(96,165,250,.09), transparent 70%),
+      radial-gradient(900px 380px at 5% 0%, rgba(52,211,153,.05), transparent 70%),
+      var(--bg-canvas);
+    background-attachment: fixed;
+  }
+  html body{ overflow-x:clip; }
+  html body .chart-header-row{ flex-wrap:wrap; min-width:0; }
+  html body .chart-header-row *{ max-width:100%; }
+  ::selection{ background:rgba(96,165,250,.35); }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
+
+  /* ---- ticker + header ---- */
+  html body > div.w-full{ background:var(--bg-panel); border-bottom:1px solid var(--line); }
+  html body header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(11,18,32,.82);
+    -webkit-backdrop-filter:blur(14px) saturate(140%); backdrop-filter:blur(14px) saturate(140%);
+    border-bottom:1px solid var(--line);
+    box-shadow:0 8px 24px -16px rgba(0,0,0,.6);
+  }
+  html body .header-nav-wrap{ gap:.25rem; }
+  html body .header-nav-link{
+    padding:.45rem .9rem; border-radius:999px; border-bottom:0;
+    transition:background-color .2s ease,color .2s ease;
+  }
+  html body .header-nav-link:hover{ background:rgba(255,255,255,.06); }
+  html body .header-nav-link.active{ background:rgba(96,165,250,.16); color:var(--text-hi); box-shadow:inset 0 0 0 1px rgba(96,165,250,.35); }
+  html body #marketStatusBadge{ border-radius:999px; }
+  .market-open{ background:rgba(52,211,153,.16); color:var(--up); box-shadow:inset 0 0 0 1px rgba(52,211,153,.4); }
+  .market-closed{ background:rgba(251,113,133,.14); color:var(--down); box-shadow:inset 0 0 0 1px rgba(251,113,133,.4); }
+  .range-btn.active, .macro-view-btn.active{ color:#06122b; font-weight:700; }
+  .range-btn, .macro-view-btn{ border-radius:8px; transition:background-color .2s ease,color .2s ease; }
+
+  /* ---- sidebars ---- */
+  html body .sidebar-left, html body .sidebar-right{ background:var(--bg-panel); border-color:var(--line); }
+  html body .sidebar-left{ padding:.75rem .5rem; }
+  html body .nav-link{ border-radius:10px; border-left-width:0; }
+  html body .nav-link.active{ box-shadow:inset 3px 0 0 var(--accent); }
+  html body .nav-link-m{ border-radius:999px; }
+  html body .watch-row{ border-radius:10px; margin:2px 6px; }
+  html body .watch-row:hover{ background:rgba(255,255,255,.05); }
+
+  /* ---- even page rhythm: every page = padded, max-width, same gap ---- */
+  html body [id^="page-"],
+  html body main > div:first-child{
+    padding:clamp(1rem,2.4vw,1.75rem) var(--fluid-px) clamp(1.5rem,3vw,2.5rem);
+    gap:clamp(1rem,2vw,1.5rem);
+  }
+  html body [id^="page-"] > *,
+  html body main > div:first-child > *{
+    width:100%; max-width:1240px;
+    margin-left:auto !important; margin-right:auto !important;
+    margin-top:0 !important; margin-bottom:0 !important;
+    padding-left:0 !important; padding-right:0 !important;
+    padding-top:0 !important; padding-bottom:0 !important;
+    border-bottom:0 !important;
+    flex-shrink:0;
+  }
+  html body [id^="page-"] > .ad-slot,
+  html body main > div:first-child > .ad-slot{ padding:0 !important; }
+  html body [id^="page-"] > div:first-child h2{ font-size:clamp(1.15rem,2.6vw,1.6rem); letter-spacing:-.01em; }
+  html body [id^="page-"] > div:first-child p{ font-size:.78rem !important; color:var(--text-dim); }
+  html body #chartWrap{
+    margin-left:auto !important; margin-right:auto !important;
+    background:var(--bg-panel); border:1px solid var(--line); border-radius:16px;
+    box-shadow:0 18px 40px -26px rgba(0,0,0,.8);
+  }
+
+
+  /* ---- mobile: stack category bar above content (row layout squeezed <main> to 0 width) ---- */
+  @media (max-width:767px){
+    html body #mainLayout{ flex-direction:column; }
+    html body #mainLayout > .md\:hidden{ flex:0 0 auto; width:100%; }
+    html body #mainLayout > main, html body #mainLayout > [id^="page-"]{ width:100%; flex:1 1 auto; }
+    html body main > div:first-child{ overflow-y:visible; }
+  }
+
+  /* ---- hairline-grid cards: no stray filled cells when a row isn't full ---- */
+  html body [class*="gap-px"][class*="bg-[var(--line)]"]{ background:var(--bg-panel) !important; gap:0 !important; }
+  html body [class*="gap-px"][class*="bg-[var(--line)]"] > *{ box-shadow:inset -1px -1px 0 var(--line); }
+
+  /* auto-fit (not auto-fill) so cards stretch instead of leaving empty columns */
+  html body .fluid-grid-2{ grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); }
+  html body .fluid-grid-3{ grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); }
+  html body .fluid-grid-4{ grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr)); }
+  html body .corp-grid{ grid-template-columns:repeat(auto-fit,minmax(min(150px,50%),1fr)); }
+
+  /* ---- cards, grids, tables ---- */
+  html body [class*="gap-px"][class*="bg-[var(--line)]"]{
+    border:1px solid var(--line); border-radius:16px; overflow:hidden;
+    box-shadow:0 18px 40px -28px rgba(0,0,0,.8);
+  }
+  html body main [class*="bg-[var(--bg-panel)]"][class*="border"],
+  html body [id^="page-"] [class*="bg-[var(--bg-panel)]"][class*="border"]{
+    border-color:var(--line); border-radius:16px;
+    box-shadow:0 18px 40px -28px rgba(0,0,0,.8);
+  }
+  html body [id^="page-"] [class*="bg-[var(--bg-panel)]"]:not([class*="border"]),
+  html body main [class*="bg-[var(--bg-panel)]"]:not([class*="border"]){ background:var(--bg-panel); }
+  html body [id^="page-"] [class*="rounded-lg"], html body main [class*="rounded-lg"]{ border-radius:16px; }
+  html body [id^="page-"] [class*="rounded-md"], html body main [class*="rounded-md"]{ border-radius:12px; }
+  html body table{ border-collapse:separate; border-spacing:0; width:100%; }
+  html body table thead th{
+    color:var(--text-dim); font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    font-size:.68rem; background:rgba(255,255,255,.02); border-bottom:1px solid var(--line);
+  }
+  html body table tbody tr{ transition:background-color .15s ease; }
+  html body table tbody tr:hover{ background:rgba(96,165,250,.06); }
+  html body table tbody td{ border-bottom:1px solid rgba(36,48,73,.6); }
+  html body table tbody tr:last-child td{ border-bottom:0; }
+  html body input, html body select, html body textarea{
+    background:var(--bg-panel-2); color:var(--text-hi);
+    border:1px solid var(--line); border-radius:10px;
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  html body input:focus, html body select:focus, html body textarea:focus{
+    outline:0; border-color:var(--accent); box-shadow:0 0 0 3px rgba(96,165,250,.2);
+  }
+  html body button{ transition:background-color .2s ease, color .2s ease, transform .15s ease, box-shadow .2s ease; }
+  html body button:active{ transform:scale(.98); }
+  html body section.border-t{ border-color:var(--line); }
+
+  /* ---- smooth page-enter (restarts each time a page is un-hidden) ---- */
+  @keyframes pageIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  html body [id^="page-"]:not(.hidden), html body main:not(.hidden){ animation:pageIn .45s cubic-bezier(.22,.8,.3,1) both; }
+
+  /* ================================================================
+     AD SLOTS — fixed reserved height (no layout shift), same on every page
+     ================================================================ */
+  .ad-slot{
+    position:relative; width:100%; max-width:1240px; margin-left:auto; margin-right:auto;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.015));
+    border:1px dashed rgba(131,146,169,.35); border-radius:14px; overflow:hidden;
+    color:var(--text-dim);
+  }
+  .ad-slot .ad-tag{
+    position:absolute; top:6px; left:10px; font-size:.6rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--text-dim); opacity:.9; pointer-events:none;
+  }
+  .ad-slot .ad-body{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; text-align:center; padding:1.4rem .75rem .6rem; }
+  .ad-slot .ad-body img{ max-width:100%; max-height:100%; height:auto; border-radius:8px; display:block; }
+  .ad-slot .ad-ph{ font-size:.75rem; line-height:1.5; }
+  .ad-slot .ad-ph b{ display:block; color:var(--text-mid); font-size:.8rem; font-weight:600; }
+  .ad-slot.filled{ border-style:solid; border-color:var(--line); background:var(--bg-panel); }
+  .ad-slot.is-empty{ display:none; }
+  .ad-leader{ min-height:110px; }                       /* 728x90 / 970x90 / 320x100 */
+  .ad-inline{ min-height:130px; }                       /* 728x90 + breathing room  */
+  .ad-rect{ min-height:290px; width:auto; margin:.75rem; } /* 300x250 */
+  html body > .ad-leader{ margin:clamp(.75rem,1.6vw,1.25rem) auto 0; width:calc(100% - 2 * var(--fluid-px)); }
+  @media (max-width:640px){ .ad-leader{ min-height:120px; } .ad-inline{ min-height:120px; } }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    html body [id^="page-"]:not(.hidden), html body main:not(.hidden){ animation:none; }
+  }
 </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -293,8 +459,11 @@ try{
     </div>
   </header>
 
+  <!-- AD: leaderboard — shown on every page -->
+  <aside class="ad-slot ad-leader" data-ad="top" aria-label="Advertisement"><span class="ad-tag">Advertisement</span><div class="ad-body"></div></aside>
+
   <!-- ============ MAIN LAYOUT ============ -->
-  <div class="flex flex-1 min-h-0">
+  <div id="mainLayout" class="flex flex-1 min-h-0">
 
     <!-- LEFT SIDEBAR NAV -->
     <aside class="sidebar-left hidden md:flex flex-col shrink-0 border-r border-[var(--line)] bg-[var(--bg-panel)] py-2.5">
@@ -402,6 +571,9 @@ try{
             </div>
           </div>
         </div>
+
+        <!-- AD: home -->
+        <aside class="ad-slot ad-inline" data-ad="home-inline" aria-label="Advertisement"><span class="ad-tag">Advertisement</span><div class="ad-body"></div></aside>
       </div>
     </main>
 
@@ -472,6 +644,8 @@ try{
           Source: Mansa API — live USE exchange data. Data is indicative and subject to revision.
         </p>
       </div>
+  <!-- AD: market-summary -->
+      <aside class="ad-slot ad-inline" data-ad="market-summary" aria-label="Advertisement"><span class="ad-tag">Advertisement</span><div class="ad-body"></div></aside>
     </div>
 
     <!-- ====== FOREX SPOT TERMINAL ====== -->
@@ -485,7 +659,7 @@ try{
       <div class="fluid-grid-3 grid gap-px bg-[var(--line)]">
         <div class="bg-[var(--bg-canvas)] px-fluid py-4">
           <div class="flex items-center gap-2 mb-2">
-            <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(76,141,255,0.1)] text-[var(--accent)] font-mono-data font-bold">UG</span>
+            <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(96,165,250,0.1)] text-[var(--accent)] font-mono-data font-bold">UG</span>
             <span class="text-fluid-sm text-[var(--text-mid)] font-medium">USD / UGX</span>
           </div>
           <div id="fx-usd-ugx" class="text-fluid-xl font-bold font-mono-data text-[var(--text-hi)]">3,720.00</div>
@@ -494,7 +668,7 @@ try{
         </div>
         <div class="bg-[var(--bg-canvas)] px-fluid py-4">
           <div class="flex items-center gap-2 mb-2">
-            <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(38,166,154,0.1)] text-[var(--up)] font-mono-data font-bold">KE</span>
+            <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(52,211,153,0.1)] text-[var(--up)] font-mono-data font-bold">KE</span>
             <span class="text-fluid-sm text-[var(--text-mid)] font-medium">KES / UGX</span>
           </div>
           <div id="fx-kes-ugx" class="text-fluid-xl font-bold font-mono-data text-[var(--text-hi)]">28.65</div>
@@ -503,7 +677,7 @@ try{
         </div>
         <div class="bg-[var(--bg-canvas)] px-fluid py-4">
           <div class="flex items-center gap-2 mb-2">
-            <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(239,83,80,0.1)] text-[var(--down)] font-mono-data font-bold">TZ</span>
+            <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(251,113,133,0.1)] text-[var(--down)] font-mono-data font-bold">TZ</span>
             <span class="text-fluid-sm text-[var(--text-mid)] font-medium">TZS / UGX</span>
           </div>
           <div id="fx-tzs-ugx" class="text-fluid-xl font-bold font-mono-data text-[var(--text-hi)]">1.42</div>
@@ -533,7 +707,7 @@ try{
             </div>
             <div class="sm:text-center">
               <label class="block text-[10px] text-[var(--text-dim)] mb-1 uppercase tracking-wide">&nbsp;</label>
-              <div class="text-fluid-sm font-mono-data font-bold text-[var(--up)] bg-[rgba(38,166,154,0.08)] border border-[rgba(38,166,154,0.2)] rounded px-3 py-2" id="convResult">UGX 372,000.00</div>
+              <div class="text-fluid-sm font-mono-data font-bold text-[var(--up)] bg-[rgba(52,211,153,0.08)] border border-[rgba(52,211,153,0.2)] rounded px-3 py-2" id="convResult">UGX 372,000.00</div>
             </div>
           </div>
         </div>
@@ -596,6 +770,8 @@ try{
           </div>
         </div>
       </div>
+  <!-- AD: forex -->
+      <aside class="ad-slot ad-inline" data-ad="forex" aria-label="Advertisement"><span class="ad-tag">Advertisement</span><div class="ad-body"></div></aside>
     </div>
 
     <!-- ====== FIXED INCOME (BONDS) ====== -->
@@ -782,6 +958,8 @@ try{
           Data is indicative and subject to revision. For official figures, visit <a href="https://www.bou.or.ug" target="_blank" rel="noopener" class="text-[var(--accent)] hover:underline">bou.or.ug</a>.
         </p>
       </div>
+  <!-- AD: bonds -->
+      <aside class="ad-slot ad-inline" data-ad="bonds" aria-label="Advertisement"><span class="ad-tag">Advertisement</span><div class="ad-body"></div></aside>
     </div>
 
     <!-- ====== MACRO INTELLIGENCE ====== -->
@@ -1019,6 +1197,8 @@ try{
           or the <a href="https://www.ugandamis.com" target="_blank" rel="noopener" class="text-[var(--accent)] hover:underline">UGATSDB portal</a>.
         </p>
       </div>
+  <!-- AD: macro -->
+      <aside class="ad-slot ad-inline" data-ad="macro" aria-label="Advertisement"><span class="ad-tag">Advertisement</span><div class="ad-body"></div></aside>
     </div>
 
     <!-- ====== INVESTOR TOOLS ====== -->
@@ -1085,6 +1265,8 @@ try{
           </button>
         </div>
       </div>
+  <!-- AD: investor -->
+      <aside class="ad-slot ad-inline" data-ad="investor" aria-label="Advertisement"><span class="ad-tag">Advertisement</span><div class="ad-body"></div></aside>
     </div>
 
     <!-- RIGHT SIDEBAR WATCHLIST -->
@@ -1103,6 +1285,9 @@ try{
       </div>
       <div class="px-fluid py-2 sm:py-2.5 border-t border-[var(--line)] mt-auto shrink-0">
         <p id="watchlistNote" class="text-fluid-xs leading-relaxed text-[var(--text-dim)]"></p>
+      </div>
+      <div class="px-2 pb-2 shrink-0"><!-- AD: sidebar -->
+      <aside class="ad-slot ad-rect" data-ad="home-side" aria-label="Advertisement"><span class="ad-tag">Advertisement</span><div class="ad-body"></div></aside>
       </div>
     </aside>
   </div>
@@ -2202,13 +2387,13 @@ function showMacroView(view){
 
   if(hasCpi){
     const cpiPts = wb.cpi.labels.map((yr, i) => ({ time: toTime(yr), value: wb.cpi.values[i] }));
-    historySeries.cpi = chart.addLineSeries({ color: "#4c8dff", lineWidth: 2, priceScaleId: "right", title: "CPI Inflation %" });
+    historySeries.cpi = chart.addLineSeries({ color: "#60a5fa", lineWidth: 2, priceScaleId: "right", title: "CPI Inflation %" });
     historySeries.cpi.setData(cpiPts);
   }
   if(hasGdp){
     const gdpPts = wb.gdp.labels.map((yr, i) => ({ time: toTime(yr), value: wb.gdp.values[i] }));
-    chart.applyOptions({ leftPriceScale: { visible: true, borderColor: "#1a1a1a" } });
-    historySeries.gdp = chart.addLineSeries({ color: "#26a69a", lineWidth: 2, priceScaleId: "left", title: "GDP Growth %" });
+    chart.applyOptions({ leftPriceScale: { visible: true, borderColor: "#243049" } });
+    historySeries.gdp = chart.addLineSeries({ color: "#34d399", lineWidth: 2, priceScaleId: "left", title: "GDP Growth %" });
     historySeries.gdp.setData(gdpPts);
   }
   chart.timeScale().fitContent();
@@ -2237,31 +2422,31 @@ function initChart(){
     height: wrap.clientHeight || 300,
     layout: {
       background: { type: "solid", color: "transparent" },
-      textColor: "#8b97a8",
+      textColor: "#a9b6cb",
       fontSize: fontSize,
       fontFamily: "JetBrains Mono, ui-monospace, monospace"
     },
     grid: {
-      vertLines: { color: "#111111" },
-      horzLines: { color: "#111111" }
+      vertLines: { color: "#1a2438" },
+      horzLines: { color: "#1a2438" }
     },
     crosshair: {
       mode: LightweightCharts.CrosshairMode.Normal,
-      vertLine: { color: "#4c8dff55", labelBackgroundColor: "#4c8dff" },
-      horzLine: { color: "#4c8dff55", labelBackgroundColor: "#4c8dff" }
+      vertLine: { color: "#60a5fa55", labelBackgroundColor: "#60a5fa" },
+      horzLine: { color: "#60a5fa55", labelBackgroundColor: "#60a5fa" }
     },
-    rightPriceScale: { borderColor: "#1a1a1a", scaleMargins: { top: 0.1, bottom: 0.1 } },
-    timeScale: { borderColor: "#1a1a1a", timeVisible: true, rightOffset: window.innerWidth < 640 ? 2 : 5 },
+    rightPriceScale: { borderColor: "#243049", scaleMargins: { top: 0.1, bottom: 0.1 } },
+    timeScale: { borderColor: "#243049", timeVisible: true, rightOffset: window.innerWidth < 640 ? 2 : 5 },
     autoSize: false
   });
 
   series = chart.addCandlestickSeries({
-    upColor: "#26a69a",
-    downColor: "#ef5350",
-    borderUpColor: "#26a69a",
-    borderDownColor: "#ef5350",
-    wickUpColor: "#26a69a",
-    wickDownColor: "#ef5350"
+    upColor: "#34d399",
+    downColor: "#fb7185",
+    borderUpColor: "#34d399",
+    borderDownColor: "#fb7185",
+    wickUpColor: "#34d399",
+    wickDownColor: "#fb7185"
   });
 
   /* Fluid resize via ResizeObserver — adapts to ANY screen change */
@@ -2620,7 +2805,7 @@ function renderNewsWire(items){
     return `
       <a href="${n.url}" target="_blank" rel="noopener" class="block px-4 sm:px-5 py-3 border-b border-[var(--line)] hover:bg-[rgba(255,255,255,0.02)] transition-colors">
         <div class="flex items-center gap-2 mb-1">
-          <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(76,141,255,0.1)] text-[var(--accent)] font-mono-data font-medium">${n.source}</span>
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-[rgba(96,165,250,0.1)] text-[var(--accent)] font-mono-data font-medium">${n.source}</span>
           <span class="text-[9px] text-[var(--text-dim)] font-mono-data">${timeAgo}</span>
         </div>
         <p class="text-fluid-sm text-[var(--text-hi)] leading-snug">${n.title}</p>
@@ -3063,11 +3248,11 @@ function renderYieldCurve(){
       datasets: [{
         label: "Yield %",
         data: yields,
-        borderColor: "#4c8dff",
-        backgroundColor: "rgba(76,141,255,0.08)",
+        borderColor: "#60a5fa",
+        backgroundColor: "rgba(96,165,250,0.08)",
         fill: true,
         tension: 0.3,
-        pointBackgroundColor: "#4c8dff",
+        pointBackgroundColor: "#60a5fa",
         pointRadius: 4,
         pointHoverRadius: 6,
         borderWidth: 2
@@ -3078,8 +3263,8 @@ function renderYieldCurve(){
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 10, family: "JetBrains Mono, monospace" } } },
-        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 10, family: "JetBrains Mono, monospace" }, callback: v => v.toFixed(1) + "%" } }
+        x: { grid: { color: "#243049" }, ticks: { color: "#8392a9", font: { size: 10, family: "JetBrains Mono, monospace" } } },
+        y: { grid: { color: "#243049" }, ticks: { color: "#8392a9", font: { size: 10, family: "JetBrains Mono, monospace" }, callback: v => v.toFixed(1) + "%" } }
       }
     }
   });
@@ -3109,16 +3294,16 @@ function renderInterbankChart(){
     data: {
       labels: INTERBANK_DATA.labels,
       datasets: [
-        { label: "Overnight", data: INTERBANK_DATA.overnight, borderColor: "#4c8dff", backgroundColor: "rgba(76,141,255,0.06)", fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 },
-        { label: "7-Day", data: INTERBANK_DATA.sevenDay, borderColor: "#26a69a", backgroundColor: "rgba(38,166,154,0.06)", fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+        { label: "Overnight", data: INTERBANK_DATA.overnight, borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,0.06)", fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 },
+        { label: "7-Day", data: INTERBANK_DATA.sevenDay, borderColor: "#34d399", backgroundColor: "rgba(52,211,153,0.06)", fill: true, tension: 0.3, pointRadius: 3, borderWidth: 2 }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#8b97a8", font: { size: 10, family: "JetBrains Mono, monospace" }, boxWidth: 12, padding: 12 } } },
+      plugins: { legend: { labels: { color: "#a9b6cb", font: { size: 10, family: "JetBrains Mono, monospace" }, boxWidth: 12, padding: 12 } } },
       scales: {
-        x: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 } } },
-        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 }, callback: v => v.toFixed(1) + "%" } }
+        x: { grid: { color: "#243049" }, ticks: { color: "#8392a9", font: { size: 9 } } },
+        y: { grid: { color: "#243049" }, ticks: { color: "#8392a9", font: { size: 9 }, callback: v => v.toFixed(1) + "%" } }
       }
     }
   });
@@ -3129,9 +3314,9 @@ const TBILL_BAR_CACHE_KEY = "bou_tbill_bar_v1";
 const TBILL_BAR_TTL = 60 * 60 * 1000;
 
 const TBILL_BAR_DATA = [
-  { tenor: "91-Day", yield: BOU_YIELDS.tbill91D.yield, color: "#4c8dff" },
-  { tenor: "182-Day", yield: BOU_YIELDS.tbill182D.yield, color: "#26a69a" },
-  { tenor: "364-Day", yield: BOU_YIELDS.tbill364D.yield, color: "#ef5350" },
+  { tenor: "91-Day", yield: BOU_YIELDS.tbill91D.yield, color: "#60a5fa" },
+  { tenor: "182-Day", yield: BOU_YIELDS.tbill182D.yield, color: "#34d399" },
+  { tenor: "364-Day", yield: BOU_YIELDS.tbill364D.yield, color: "#fb7185" },
   { tenor: "2-Yr Bond", yield: BOU_YIELDS.bond2Y.yield, color: "#ffb74d" },
   { tenor: "5-Yr Bond", yield: BOU_YIELDS.bond5Y.yield, color: "#ba68c8" },
   { tenor: "10-Yr Bond", yield: BOU_YIELDS.bond10Y.yield, color: "#4dd0e1" },
@@ -3164,8 +3349,8 @@ function renderTbillBarChart(){
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: "#56616f", font: { size: 9, family: "JetBrains Mono, monospace" } } },
-        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 }, callback: v => v.toFixed(1) + "%" }, beginAtZero: false, min: 8 }
+        x: { grid: { display: false }, ticks: { color: "#8392a9", font: { size: 9, family: "JetBrains Mono, monospace" } } },
+        y: { grid: { color: "#243049" }, ticks: { color: "#8392a9", font: { size: 9 }, callback: v => v.toFixed(1) + "%" }, beginAtZero: false, min: 8 }
       }
     }
   });
@@ -3191,7 +3376,7 @@ function renderExchangeRateGrid(){
     return `
       <div class="bg-[var(--bg-canvas)] px-4 sm:px-5 py-4">
         <div class="flex items-center gap-2 mb-2">
-          <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(76,141,255,0.1)] text-[var(--accent)] font-mono-data font-bold">${fx.flag}</span>
+          <span class="text-fluid-xs px-1.5 py-0.5 rounded bg-[rgba(96,165,250,0.1)] text-[var(--accent)] font-mono-data font-bold">${fx.flag}</span>
           <span class="text-fluid-sm text-[var(--text-mid)] font-medium">${fx.pair}</span>
         </div>
         <div class="text-fluid-xl font-bold font-mono-data text-[var(--text-hi)]">${fx.rate.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
@@ -3206,7 +3391,7 @@ function renderExchangeRateGrid(){
 const CREDIT_SECTOR_DATA = {
   labels: ["Trade & Commerce", "Agriculture", "Manufacturing", "Personal & Household", "Transport & Communication", "Building & Construction", "Mining & Quarrying", "Other"],
   values: [28.4, 18.6, 14.2, 12.8, 9.5, 7.3, 3.1, 6.1],
-  colors: ["#4c8dff","#26a69a","#ef5350","#ffb74d","#ba68c8","#4dd0e1","#aed581","#78909c"]
+  colors: ["#60a5fa","#34d399","#fb7185","#fbbf24","#c4b5fd","#22d3ee","#a3e635","#78909c"]
 };
 
 let creditPieChart = null;
@@ -3233,7 +3418,7 @@ function renderCreditPieChart(){
       plugins: {
         legend: {
           position: "right",
-          labels: { color: "#8b97a8", font: { size: 10, family: "JetBrains Mono, monospace" }, boxWidth: 10, padding: 8 }
+          labels: { color: "#a9b6cb", font: { size: 10, family: "JetBrains Mono, monospace" }, boxWidth: 10, padding: 8 }
         },
         tooltip: {
           callbacks: { label: function(ctx){ return ctx.label + ": " + ctx.parsed + "%"; } }
@@ -3401,15 +3586,15 @@ function renderCpiChart(){
     data: {
       labels: cpiLabels,
       datasets: [
-        { label: "CPI Inflation (%)", data: cpiValues, borderColor: "#ef5350", backgroundColor: "rgba(239,83,80,0.06)", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+        { label: "CPI Inflation (%)", data: cpiValues, borderColor: "#fb7185", backgroundColor: "rgba(251,113,133,0.06)", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#8b97a8", font: { size: 10, family: "JetBrains Mono, monospace" } } } },
+      plugins: { legend: { labels: { color: "#a9b6cb", font: { size: 10, family: "JetBrains Mono, monospace" } } } },
       scales: {
-        x: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 } } },
-        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 }, callback: v => v + "%" } }
+        x: { grid: { color: "#243049" }, ticks: { color: "#8392a9", font: { size: 9 } } },
+        y: { grid: { color: "#243049" }, ticks: { color: "#8392a9", font: { size: 9 }, callback: v => v + "%" } }
       }
     }
   });
@@ -3429,15 +3614,15 @@ function renderPolicyChart(){
     data: {
       labels: gdpLabels,
       datasets: [
-        { label: "GDP Growth (%)", data: gdpValues, borderColor: "#26a69a", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
+        { label: "GDP Growth (%)", data: gdpValues, borderColor: "#34d399", fill: false, tension: 0.3, pointRadius: 3, borderWidth: 2 }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: "#8b97a8", font: { size: 10, family: "JetBrains Mono, monospace" } } } },
+      plugins: { legend: { labels: { color: "#a9b6cb", font: { size: 10, family: "JetBrains Mono, monospace" } } } },
       scales: {
-        x: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 } } },
-        y: { grid: { color: "#1a1a1a" }, ticks: { color: "#56616f", font: { size: 9 }, callback: v => v + "%" } }
+        x: { grid: { color: "#243049" }, ticks: { color: "#8392a9", font: { size: 9 } } },
+        y: { grid: { color: "#243049" }, ticks: { color: "#8392a9", font: { size: 9 }, callback: v => v + "%" } }
       }
     }
   });
@@ -3587,5 +3772,63 @@ function exportDividendPdf(){
   }catch(e){ console.error("Boot failed:", e); }
 })();
 </script>
+
+<!-- ============ AD SLOT MANAGER ============
+     Fill any slot below by editing window.AD_CONFIG.slots (here, or in ./config.js).
+     Slot ids:  top (every page) · home-inline · home-side · market-summary · forex · bonds · macro · investor
+     Slot types:
+       { type:"image",   src:"ads/banner.jpg", href:"https://advertiser.com", alt:"Advertiser" }
+       { type:"html",    html:"<a href='...'><img src='...'></a>" }      (scripts inside html will not run)
+       { type:"adsense", client:"ca-pub-XXXXXXXXXXXXXXXX", slot:"1234567890" }
+       { type:"placeholder" }   (default – shows an "Advertise here" box)
+     Set showPlaceholders:false to hide every slot that has no ad yet. -->
+<script>
+(function(){
+  var defaults = { showPlaceholders:true, contactUrl:"", slots:{} };
+  var SIZES = { top:"728×90 · 970×90 · 320×100", "home-inline":"728×90 · 970×250", "home-side":"300×250 · 300×600",
+                "market-summary":"728×90 · 970×250", forex:"728×90 · 970×250", bonds:"728×90 · 970×250",
+                macro:"728×90 · 970×250", investor:"728×90 · 970×250" };
+  var adsenseLoaded = {};
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function safeUrl(u){ return /^(https?:|\/|\.\/|\.\.\/|ads\/|[\w-]+\/)/i.test(u||"") && !/^javascript:/i.test(u) ? u : ""; }
+
+  function render(el, cfg, conf){
+    var body = el.querySelector(".ad-body");
+    var slot = (conf.slots||{})[el.getAttribute("data-ad")] || { type:"placeholder" };
+    el.classList.remove("filled","is-empty");
+    if(slot.type==="image" && safeUrl(slot.src)){
+      var img = '<img src="'+esc(safeUrl(slot.src))+'" alt="'+esc(slot.alt||"Advertisement")+'" loading="lazy">';
+      var href = safeUrl(slot.href);
+      body.innerHTML = href ? '<a href="'+esc(href)+'" target="_blank" rel="sponsored noopener noreferrer">'+img+'</a>' : img;
+      el.classList.add("filled");
+    } else if(slot.type==="html" && slot.html){
+      body.innerHTML = slot.html; el.classList.add("filled");
+    } else if(slot.type==="adsense" && slot.client && slot.slot){
+      if(!adsenseLoaded[slot.client]){
+        var s = document.createElement("script"); s.async = true; s.crossOrigin = "anonymous";
+        s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client="+encodeURIComponent(slot.client);
+        document.head.appendChild(s); adsenseLoaded[slot.client] = true;
+      }
+      body.innerHTML = '<ins class="adsbygoogle" style="display:block;width:100%" data-ad-client="'+esc(slot.client)+
+        '" data-ad-slot="'+esc(slot.slot)+'" data-ad-format="auto" data-full-width-responsive="true"></ins>';
+      try{ (window.adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
+      el.classList.add("filled");
+    } else if(conf.showPlaceholders){
+      var link = safeUrl(conf.contactUrl) || (/^mailto:/i.test(conf.contactUrl||"") ? conf.contactUrl : "");
+      var title = link ? '<a href="'+esc(link)+'" style="color:var(--accent)">Advertise here</a>' : "Advertise here";
+      body.innerHTML = '<div class="ad-ph"><b>'+title+'</b>'+esc(SIZES[el.getAttribute("data-ad")]||"")+'</div>';
+    } else {
+      body.innerHTML = ""; el.classList.add("is-empty");
+    }
+  }
+  window.renderAds = function(){
+    var conf = Object.assign({}, defaults, window.AD_CONFIG||{});
+    document.querySelectorAll(".ad-slot[data-ad]").forEach(function(el){ render(el, el, conf); });
+  };
+  document.addEventListener("DOMContentLoaded", window.renderAds);
+  window.addEventListener("load", window.renderAds);   // picks up ./config.js overrides that load late
+})();
+</script>
+
 </body>
 </html>
